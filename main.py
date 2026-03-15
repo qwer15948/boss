@@ -1,11 +1,11 @@
 import streamlit as st
 
-# 1. 페이지 설정 및 초기화 (최상단 배치)
+# 1. 페이지 설정 및 초기화 (반드시 최상단)
 st.set_page_config(page_title="아이온2 정산기", layout="wide")
 
-# 세션 상태가 비어있을 경우를 대비한 안전한 초기화
+# 세션 상태 초기화 로직 (None 방지)
 if 'items' not in st.session_state:
-    st.session_state.items = [{'id': 0, 'value': 750}, {'id': 1, 'value': 750}]
+    st.session_state.items = {0: 750, 1: 750}  # {ID: 가격} 형태
 if 'next_id' not in st.session_state:
     st.session_state.next_id = 2
 
@@ -13,19 +13,12 @@ if 'next_id' not in st.session_state:
 st.markdown("""
     <style>
     .main { background-color: #0E1117; }
-    div[data-testid="stNumberInput"] label { color: #AAAAAA !important; font-size: 14px; }
     .result-card {
-        background-color: #1E1E1E;
-        padding: 25px;
-        border-radius: 15px;
-        border: 1px solid #333;
-        text-align: center;
-        margin-bottom: 20px;
+        background-color: #1E1E1E; padding: 25px; border-radius: 15px;
+        border: 1px solid #333; text-align: center; margin-bottom: 20px;
     }
     .summary-box {
-        background-color: #161616;
-        padding: 20px;
-        border-radius: 10px;
+        background-color: #161616; padding: 20px; border-radius: 10px;
         border-left: 5px solid #FFB800;
     }
     .gold-val { color: #FFB800; font-weight: bold; font-size: 28px; margin: 10px 0; }
@@ -34,20 +27,17 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 데이터 조작 함수 ---
+# --- 콜백 함수 (에러 방지용 핵심 로직) ---
 def add_item():
-    st.session_state.items.append({'id': st.session_state.next_id, 'value': 0})
+    st.session_state.items[st.session_state.next_id] = 0
     st.session_state.next_id += 1
 
 def remove_item(item_id):
     if len(st.session_state.items) > 1:
-        # ID를 기준으로 해당 아이템 삭제
-        st.session_state.items = [item for item in st.session_state.items if item['id'] != item_id]
-        st.rerun()
+        del st.session_state.items[item_id]
 
 # --- 화면 레이아웃 ---
 st.title("🛡️ ION2 Settlement Helper")
-st.caption("판매자(22% 차감) & 팀원(12% 차감) 수수료 완전 보정")
 
 col_left, col_right = st.columns([1, 1.2], gap="large")
 
@@ -60,33 +50,34 @@ with col_left:
     st.write("---")
     st.write("#### 💰 판매 아이템 리스트")
     
-    # 세션에 저장된 리스트를 안전하게 순회
-    current_items = st.session_state.items
-    for i, item in enumerate(current_items):
+    # 세션 딕셔너리를 직접 순회하며 입력창 생성
+    for item_id in list(st.session_state.items.keys()):
         item_col, btn_col = st.columns([4, 1])
         with item_col:
-            # 개별 아이템 가격 입력 (ID 기반 고유 Key 사용)
-            item['value'] = st.number_input(
-                f"아이템 {i+1} 가격 (만 단위)", 
-                value=item['value'], 
-                key=f"input_{item['id']}"
+            # 입력값이 즉시 세션에 저장되도록 구성
+            st.session_state.items[item_id] = st.number_input(
+                f"아이템 가격 (만 단위)", 
+                value=st.session_state.items[item_id], 
+                key=f"input_{item_id}"
             )
         with btn_col:
-            st.write(" ") # 레이아웃 정렬용
             st.write(" ")
-            if st.button("🗑️", key=f"del_{item['id']}"):
-                remove_item(item['id'])
+            st.write(" ")
+            # 삭제 버튼 (on_click 대신 직접 호출 시 rerun 필요없음)
+            if st.button("🗑️", key=f"del_{item_id}"):
+                remove_item(item_id)
+                st.rerun()
     
     st.button("➕ 아이템 추가", on_click=add_item, use_container_width=True)
 
 # --- 계산 로직 ---
-# 총 판매액 (만원 단위 -> 원 단위)
-total_sales = sum(item['value'] for item in st.session_state.items) * 10000
-# 판매자 순수익 (거래소 80% 정산 - 등록비 2% = 78%)
+# 총 판매액 합산
+total_sales = sum(st.session_state.items.values()) * 10000
+# 판매자 정산 (80% 정산 - 2% 등록비 = 78%)
 pure_profit = total_sales * 0.78
-# 팀원 등록 가격 (공식: P = pure_profit / (k - 0.12) - a)
+# 팀원 등록가 역산 공식 (공평하게 수수료를 분담하는 P 값)
 listing_price = (pure_profit / (k - 0.12)) - a
-# 팀원 최종 실수령 (등록가에서 수수료 10% 및 등록비 2% 제외 = 88%)
+# 팀원 실수령 (등록가에서 수수료 10% 및 등록비 2% 제외 = 88%)
 real_share = listing_price * 0.88
 
 # --- 결과 화면 ---
@@ -97,29 +88,29 @@ with col_right:
     with res_c1:
         st.markdown(f"""<div class="result-card">
             <p style="color:#888; font-size:14px; margin:0;">인당 최종 실수령액</p>
-            <p class="gold-val">{int(max(0, real_share)):,}원</p>
-            <p style="color:#555; font-size:11px; margin:0;">등록비/수수료 모두 제외</p>
+            <p class="gold-val">{max(0, int(real_share)):,}원</p>
+            <p style="color:#555; font-size:11px; margin:0;">모든 수수료/등록비 제외</p>
         </div>""", unsafe_allow_html=True)
     
     with res_c2:
         st.markdown(f"""<div class="result-card">
             <p style="color:#888; font-size:14px; margin:0;">팀원 거래소 등록가</p>
-            <p class="white-val">{int(max(0, listing_price)):,}원</p>
-            <p style="color:#555; font-size:11px; margin:0;">이 금액으로 올리라고 하세요</p>
+            <p class="white-val">{max(0, int(listing_price)):,}원</p>
+            <p style="color:#555; font-size:11px; margin:0;">잡동사니 올리는 가격</p>
         </div>""", unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="summary-box">
-        <p style="margin-bottom:8px;"><b>📦 아이템 합계:</b> {total_sales:,}원</p>
-        <p style="margin-bottom:8px;"><b>💰 판매자 순수 정산금:</b> {int(pure_profit):,}원</p>
-        <hr style="margin:10px 0;">
+        <p><b>📦 총 판매액:</b> {total_sales:,}원</p>
+        <p><b>💰 판매자 순수 정산금:</b> {int(pure_profit):,}원</p>
+        <hr>
         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-            <span style="color:#AAA;">팀원 ({k-1}명) 총 이체액</span>
-            <span>{int(max(0, listing_price * (k-1))):,}원</span>
+            <span style="color:#AAA;">팀원 {k-1}명 총 이체액</span>
+            <span>{max(0, int(listing_price * (k-1))):,}원</span>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+        <div style="display:flex; justify-content:space-between;">
             <span style="color:#FFB800; font-weight:bold;">판매자 본인 몫 (잔액)</span>
-            <span style="color:#FFB800; font-weight:bold;">{int(max(0, pure_profit - (listing_price * (k-1)))):,}원</span>
+            <span style="color:#FFB800; font-weight:bold;">{max(0, int(pure_profit - (listing_price * (k-1)))):,}원</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
