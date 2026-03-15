@@ -77,8 +77,8 @@ st.markdown("""
 
     /* 정산 결과 섹션 디자인 */
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
-    .gold-val { color: #FFB800; font-weight: bold; font-size: 34px; }
-    .white-val { color: #FFFFFF; font-weight: bold; font-size: 34px; }
+    .gold-val { color: #FFB800; font-weight: bold; font-size: 20px !important; }
+    .white-val { color: #FFFFFF; font-weight: bold; font-size: 20px !important; }
     .summary-box { background-color: #161616; padding: 20px; border-radius: 10px; border-left: 4px solid #FFB800; }
     hr { border: 0.1px solid #333; margin: 20px 0; }
     </style>
