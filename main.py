@@ -4,89 +4,71 @@ import re
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 세션 초기화
+# 2. 세션 초기화 (방어 코드 포함)
 if 'item_data' not in st.session_state:
-    st.session_state.item_data = [
-        {'name': '필보', 'price_str': '7,500,000'}
-    ]
+    st.session_state.item_data = [{'name': '필보', 'price_str': '7,500,000'}]
 
-# --- 3. 커스텀 CSS (1번 사진 스타일 정밀 타격) ---
+# --- 3. 커스텀 CSS (카드 내부 여백 및 테두리 완벽 고정) ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
     .main { background-color: #0E1117; }
     
-    /* 아이템 카드: 1번 사진처럼 둥글고 짙은 배경 */
-    .item-card {
+    /* [핵심] 카드 컨테이너: 위젯을 감싸는 실제 div 스타일 */
+    [data-testid="stVerticalBlock"] > div:has(div.item-card-marker) {
         background-color: #262626;
-        padding: 15px 20px;
-        border-radius: 12px;
-        border: 1px solid #333;
+        padding: 20px !important;
+        border-radius: 15px;
+        border: 1px solid #444;
         margin-bottom: 15px;
     }
     
-    /* 라벨 텍스트 스타일 */
-    .label-row {
-        color: #AAA;
-        font-size: 13px;
-        font-weight: bold;
-        margin-right: 10px;
-        display: flex;
-        align-items: center;
-        height: 42px; /* 입력창 높이와 일치 */
-    }
-
-    /* 번호 배지: 오렌지/골드 포인트 */
+    /* 레이블 및 텍스트 스타일 */
+    .label-row { color: #AAA; font-size: 13px; font-weight: bold; margin-top: 10px; }
     .item-badge {
-        background-color: #FFB800;
-        color: #000;
-        border-radius: 50%;
-        width: 22px;
-        height: 22px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 12px;
-        margin-right: 15px;
+        background-color: #FFB800; color: #000; border-radius: 50%;
+        width: 24px; height: 24px; display: flex; align-items: center;
+        justify-content: center; font-weight: bold; font-size: 13px;
     }
 
-    /* 입력창 및 버튼 디자인 */
-    div[data-testid="stTextInput"] label, div[data-testid="stNumberInput"] label { display: none; }
-    
+    /* 입력창 디자인 */
+    div[data-testid="stTextInput"] label { display: none; }
     input {
         background-color: #1E1E1E !important;
         border: 1px solid #444 !important;
         border-radius: 8px !important;
         color: white !important;
-        text-align: right !important; /* 금액 오른쪽 정렬 */
     }
-    /* 이름 입력창은 왼쪽 정렬 */
-    div[key^="ni_"] input { text-align: left !important; }
-
-    /* 삭제 버튼 (X) */
-    .stButton > button {
-        height: 42px; width: 42px;
-        background-color: transparent;
-        border: 1px solid #444;
-        color: #888;
-        border-radius: 8px;
-    }
-    .stButton > button:hover { border-color: #ff4b4b; color: #ff4b4b; }
     
-    /* 정산 결과 스타일 */
+    /* 삭제 버튼 */
+    .stButton > button {
+        height: 42px; width: 42px; background-color: #333;
+        border: 1px solid #444; color: #888; border-radius: 8px;
+    }
+    
+    /* 결과창 디자인 */
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
     .summary-box { background-color: #161616; padding: 20px; border-radius: 10px; border-left: 4px solid #FFB800; }
     .gold-val { color: #FFB800; font-weight: bold; font-size: 28px; }
     .white-val { color: #FFFFFF; font-weight: bold; font-size: 28px; }
+    hr { border: 0.1px solid #333; margin: 15px 0; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 유틸리티 함수 ---
+# --- 유틸리티 함수 (콤마) ---
 def format_comma(val):
     num = re.sub(r'[^0-9]', '', str(val))
     if not num: return "0"
     return f"{int(num):,}"
+
+# --- 콜백 함수 (실시간 업데이트용) ---
+def update_item(idx, key_type):
+    # 입력한 즉시 세션 데이터를 콤마 처리된 상태로 업데이트
+    if key_type == 'price':
+        raw_val = st.session_state[f"pi_{idx}"]
+        st.session_state.item_data[idx]['price_str'] = format_comma(raw_val)
+    elif key_type == 'name':
+        st.session_state.item_data[idx]['name'] = st.session_state[f"ni_{idx}"]
 
 def add_item():
     st.session_state.item_data.append({'name': '필보', 'price_str': '0'})
@@ -106,45 +88,40 @@ with col_left:
     st.subheader("📋 입력 정보")
     in_c1, in_c2 = st.columns(2)
     with in_c1:
-        st.write("<p style='color:#888; font-size:12px; margin-bottom:5px;'>👥 참여 인원</p>", unsafe_allow_html=True)
-        k = st.number_input("인원", min_value=1, value=6, step=1)
+        k = st.number_input("👥 참여 인원", min_value=1, value=6, step=1)
     with in_c2:
-        st.write("<p style='color:#888; font-size:12px; margin-bottom:5px;'>💰 기타 공제액</p>", unsafe_allow_html=True)
-        a = st.number_input("공제", value=0, step=10000, format="%d")
+        a = st.number_input("💰 기타 공제액", value=0, step=10000, format="%d")
 
     st.write("---")
     st.write("#### 📦 판매 아이템 리스트")
     
-    current_data = []
+    # 아이템 리스트 렌더링
     for i, item in enumerate(st.session_state.item_data):
-        # 카드 시작
-        st.markdown(f'<div class="item-card">', unsafe_allow_html=True)
-        
-        # 1층: 번호 + 이름 + 삭제버튼
-        row1_col1, row1_col2, row1_col3 = st.columns([0.8, 8, 1.2])
-        with row1_col1:
-            st.markdown(f'<div style="margin-top:10px;" class="item-badge">{i+1}</div>', unsafe_allow_html=True)
-        with row1_col2:
-            name_val = st.text_input(f"n_{i}", value=item['name'], key=f"ni_{i}")
-        with row1_col3:
-            if st.button("✕", key=f"db_{i}"):
-                remove_item(i)
-        
-        # 2층: 판매가 라벨 + 가격 입력 + 원
-        row2_col1, row2_col2, row2_col3 = st.columns([1.5, 7.5, 1])
-        with row2_col1:
-            st.markdown('<div class="label-row">판매가</div>', unsafe_allow_html=True)
-        with row2_col2:
-            price_raw = st.text_input(f"p_{i}", value=item['price_str'], key=f"pi_{i}")
-        with row2_col3:
-            st.markdown('<div class="label-row">원</div>', unsafe_allow_html=True)
+        # [카드 컨테이너 시작]
+        with st.container():
+            # CSS 선택자를 위한 마커
+            st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
             
-        formatted_p = format_comma(price_raw)
-        current_data.append({'name': name_val, 'price_str': formatted_p})
-        
-        st.markdown('</div>', unsafe_allow_html=True) # 카드 끝
+            # 1층: 번호 + 이름 + 삭제
+            h_c1, h_c2, h_c3 = st.columns([0.8, 8, 1.2])
+            with h_c1:
+                st.markdown(f'<div style="margin-top:10px;" class="item-badge">{i+1}</div>', unsafe_allow_html=True)
+            with h_c2:
+                st.text_input("보스명", value=item['name'], key=f"ni_{i}", on_change=update_item, args=(i, 'name'))
+            with h_c3:
+                if st.button("✕", key=f"db_{i}"):
+                    remove_item(i)
             
-    st.session_state.item_data = current_data
+            # 2층: 라벨 + 가격 + 단위
+            p_c1, p_c2, p_c3 = st.columns([1.5, 7.5, 1])
+            with p_c1:
+                st.markdown('<div class="label-row">판매가</div>', unsafe_allow_html=True)
+            with p_c2:
+                # [실시간 콤마의 핵심] on_change 콜백 사용
+                st.text_input("가격", value=item['price_str'], key=f"pi_{i}", on_change=update_item, args=(i, 'price'))
+            with p_c3:
+                st.markdown('<div class="label-row">원</div>', unsafe_allow_html=True)
+            
     st.button("＋ 아이템 추가", on_click=add_item, use_container_width=True)
 
 # --- 계산 로직 ---
