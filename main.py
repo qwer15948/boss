@@ -1,22 +1,23 @@
 import streamlit as st
 import re
+import uuid
 
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 세션 초기화 (데이터를 딕셔너리 형태로 더 안전하게 관리)
-if 'item_count' not in st.session_state:
-    st.session_state.item_count = 1
-    st.session_state['ni_0'] = '필보'
-    st.session_state['pi_0'] = '7,500,000'
+# 2. 세션 초기화 (딕셔너리 구조로 변경하여 데이터 독립성 보장)
+if 'items' not in st.session_state:
+    # 각 아이템은 고유 ID를 키로 가짐
+    st.session_state.items = {
+        str(uuid.uuid4()): {"name": "필보", "price": "7,500,000"}
+    }
 
-# --- 3. 커스텀 CSS (X버튼 및 컨테이너 집중 보정) ---
+# --- 3. 커스텀 CSS (카드 디자인 및 X버튼 정밀 보정) ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
-    .main { background-color: #0E1117; }
     
-    /* 카드 컨테이너 통합 스타일 */
+    /* 카드 컨테이너 스타일 */
     div[data-testid="stVerticalBlockBorderWrapper"]:has(.item-card-marker) {
         background-color: #262626 !important;
         padding: 20px !important;
@@ -44,29 +45,21 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 삭제 버튼(X) 정중앙 완벽 정렬 */
+    /* 삭제 버튼(X) 정중앙 완벽 정렬 및 크기 고정 */
     div.stButton > button[key^="del_"] {
         height: 42px !important;
         width: 42px !important;
+        padding: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        padding: 0 !important;
         background-color: #333 !important;
         border: 1px solid #444 !important;
         color: #888 !important;
-        font-size: 20px !important; /* 크기 약간 키움 */
-        font-family: sans-serif !important;
+        font-size: 18px !important;
         line-height: 1 !important;
         border-radius: 8px !important;
     }
-    div.stButton > button[key^="del_"]:hover { 
-        border-color: #ff4b4b !important; 
-        color: #ff4b4b !important; 
-        background-color: #3d2b2b !important;
-    }
-
-    /* 아이템 추가 버튼 */
     div.stButton > button[key="add_btn"] {
         background-color: #333 !important;
         color: #FFB800 !important;
@@ -75,11 +68,10 @@ st.markdown("""
         font-weight: bold !important;
         border-radius: 10px !important;
     }
-
+    
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
-    .gold-val, .white-val { font-weight: bold; font-size: 20px !important; }
-    .gold-val { color: #FFB800; }
-    .white-val { color: #FFFFFF; }
+    .gold-val { color: #FFB800; font-weight: bold; font-size: 20px; }
+    .white-val { color: #FFFFFF; font-weight: bold; font-size: 20px; }
     .summary-box { background-color: #161616; padding: 20px; border-radius: 10px; border-left: 4px solid #FFB800; }
     hr { border: 0.1px solid #333; margin: 20px 0; }
     </style>
@@ -90,17 +82,14 @@ def format_comma(val):
     num = re.sub(r'[^0-9]', '', str(val))
     return f"{int(num):,}" if num else "0"
 
-def on_price_change(idx):
-    key = f"pi_{idx}"
-    if key in st.session_state:
-        st.session_state[key] = format_comma(st.session_state[key])
-
 def add_item():
-    # 고유 인덱스 생성을 위해 현재 사용된 적 없는 가장 높은 숫자를 찾음
-    existing_indices = [int(k.split('_')[1]) for k in st.session_state.keys() if k.startswith('ni_')]
-    next_idx = max(existing_indices) + 1 if existing_indices else 0
-    st.session_state[f'ni_{next_idx}'] = '필보'
-    st.session_state[f'pi_{next_idx}'] = '0'
+    new_id = str(uuid.uuid4())
+    st.session_state.items[new_id] = {"name": "필보", "price": "0"}
+
+def delete_item(item_id):
+    if item_id in st.session_state.items:
+        del st.session_state.items[item_id]
+        st.rerun()
 
 # --- 5. 메인 화면 ---
 st.title("🎲 아이온2 필보 정산기")
@@ -118,12 +107,9 @@ with col_left:
     st.write("---")
     st.write("#### 📦 판매 아이템 리스트")
     
-    # 1. 현재 세션에 존재하는 아이템 인덱스만 추출 및 정렬
-    item_indices = sorted([int(k.split('_')[1]) for k in st.session_state.keys() if k.startswith('ni_')])
-    
     display_num = 1
-    for i in item_indices:
-        # container(border=True)를 사용하여 카드 분리 현상 방지
+    # 딕셔너리를 순회하며 카드 생성
+    for item_id, item_info in list(st.session_state.items.items()):
         with st.container(border=True):
             st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
             
@@ -132,20 +118,30 @@ with col_left:
             with r1_c1:
                 st.markdown(f'<div class="item-badge">{display_num}</div>', unsafe_allow_html=True)
             with r1_c2:
-                st.text_input("보스명", key=f"ni_{i}")
+                # 위젯 키에 UUID를 사용하여 데이터 꼬임 방지
+                st.session_state.items[item_id]["name"] = st.text_input(
+                    "보스명", value=item_info["name"], key=f"ni_{item_id}"
+                )
             with r1_c3:
-                # 삭제 시 해당 인덱스만 정확히 타격하여 삭제 후 즉시 새로고침
-                if st.button("✕", key=f"del_{i}"):
-                    del st.session_state[f'ni_{i}']
-                    del st.session_state[f'pi_{i}']
-                    st.rerun()
+                # 삭제 버튼
+                if st.button("✕", key=f"del_{item_id}"):
+                    delete_item(item_id)
             
             # 2행
             r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
             with r2_c1:
                 st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
             with r2_c2:
-                st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
+                raw_price = st.text_input(
+                    "가격", value=item_info["price"], key=f"pi_{item_id}"
+                )
+                # 입력 시 즉시 콤마 적용
+                formatted = format_comma(raw_price)
+                if formatted != raw_price:
+                    st.session_state.items[item_id]["price"] = formatted
+                    st.rerun()
+                else:
+                    st.session_state.items[item_id]["price"] = raw_price
             with r2_c3:
                 st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
             
@@ -155,10 +151,8 @@ with col_left:
 
 # --- 6. 계산 로직 ---
 total_sales = 0
-# 현재 남아있는 모든 pi_ 키의 값을 합산
-current_pi_keys = [k for k in st.session_state.keys() if k.startswith('pi_')]
-for pk in current_pi_keys:
-    val = re.sub(r'[^0-9]', '', st.session_state[pk])
+for item in st.session_state.items.values():
+    val = re.sub(r'[^0-9]', '', item["price"])
     total_sales += int(val) if val else 0
 
 pure_profit = total_sales * 0.78 
