@@ -26,8 +26,7 @@ with col1:
     st.metric("인당 최종 실수령액", f"{int(real_share):,} 원")
     st.caption("등록비/수수료 뺀 진짜 이득")
 with col2:
-    st.metric("인당 등록 가격")
-    st.header(f"{int(listing_price):,} 원")
+    st.metric("인당 등록 가격", f"{int(listing_price):,} 원")
     st.caption("거래소에 위 금액대로 올려주세요.")
 
 with st.expander("상세히 보기"):
