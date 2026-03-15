@@ -124,7 +124,40 @@ with col_left:
     for i in range(st.session_state.item_count):
         if f'ni_{i}' not in st.session_state: continue
         
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
+        # --- 수정한 CSS (이 부분이 핵심입니다) ---
+st.markdown("""
+    <style>
+    /* 1. 실제 위젯 컨테이너를 카드 스타일로 변환 */
+    [data-testid="stVerticalBlockBorderWrapper"]:has(div.item-card-inner) {
+        background-color: #262626 !important;
+        padding: 20px !important;
+        border-radius: 12px !important;
+        border: 1px solid #444 !important;
+        margin-bottom: 15px !important;
+    }
+    
+    /* 2. 내부 여백 미세 조정 */
+    div.item-card-inner {
+        margin-bottom: -10px; /* 불필요한 하단 여백 제거 */
+    }
+
+    /* 3. 삭제 버튼(X) 위치 보정 */
+    div[data-testid="stColumn"]:has(button[key^="del_"]) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- 수정한 아이템 리스트 루프 ---
+for i in range(st.session_state.item_count):
+    if f'ni_{i}' not in st.session_state: continue
+    
+    # [변경] markdown div로 감싸는 대신 st.container(border=True) 또는 커스텀 컨테이너 사용
+    with st.container():
+        # CSS가 이 컨테이너를 찾을 수 있게 마커를 심어줍니다.
+        st.markdown('<div class="item-card-inner"></div>', unsafe_allow_html=True)
         
         # 1행: 배지, 이름, 삭제
         r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
@@ -146,11 +179,10 @@ with col_left:
             st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
         with r2_c3:
             st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
-            
-        st.markdown('</div>', unsafe_allow_html=True)
 
-    # [수정] 아이템 추가 버튼 - 키를 명시적으로 지정하여 스타일 고정
-    st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
+# 아이템 추가 버튼은 카드 밖으로!
+st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
+
 
 # --- 계산 로직 ---
 total_sales = 0
