@@ -77,8 +77,8 @@ st.markdown("""
 
     /* 정산 결과 섹션 디자인 */
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
-    .gold-val { color: #FFB800; font-weight: bold; font-size: 28px; }
-    .white-val { color: #FFFFFF; font-weight: bold; font-size: 28px; }
+    .gold-val { color: #FFB800; font-weight: bold; font-size: 34px; }
+    .white-val { color: #FFFFFF; font-weight: bold; font-size: 34px; }
     .summary-box { background-color: #161616; padding: 20px; border-radius: 10px; border-left: 4px solid #FFB800; }
     hr { border: 0.1px solid #333; margin: 20px 0; }
     </style>
@@ -167,12 +167,12 @@ with col_right:
     with res_c1:
         st.markdown(f"""<div class="result-card">
             <p style="color:#888; font-size: 13px;">인당 최종 실수령액</p>
-            <p class="gold-val" style="font-size: 15px">{max(0, int(real_share)):,}원</p>
+            <p class="gold-val">{max(0, int(real_share)):,}원</p>
         </div>""", unsafe_allow_html=True)
     with res_c2:
         st.markdown(f"""<div class="result-card">
             <p style="color:#888; font-size: 13px;">팀원 거래소 등록가</p>
-            <p class="white-val" style="font-size: 15px">{max(0, int(listing_price)):,}원</p>
+            <p class="white-val">{max(0, int(listing_price)):,}원</p>
         </div>""", unsafe_allow_html=True)
 
     st.markdown(f"""
@@ -181,6 +181,6 @@ with col_right:
         <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#888;">💰 판매자 순수 정산금 (0.78T)</span><span>{int(pure_profit):,}원</span></div>
         <hr style="border:0.1px solid #333; margin:15px 0;">
         <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#AAA;">팀원 {k-1}명 총 이체액</span><span>{max(0, int(listing_price * (k-1))):,}원</span></div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:#FFB800;">판매자 본인 몫 (잔액)</span><b style="color:#FFB800;">{max(0, int(pure_profit - (listing_price * (k-1)))):,}원</b></div>
+        <div style="display:flex; justify-content:space-between;"><span style="color:#888;">판매자 본인 몫 (잔액)</span><b style="color:#FFB800;">{max(0, int(pure_profit - (listing_price * (k-1)))):,}원</b></div>
     </div>
     """, unsafe_allow_html=True)
