@@ -18,7 +18,7 @@ st.markdown("""
     
     /* [핵심] 컨테이너를 카드 스타일로 변신 */
     [data-testid="stVerticalBlockBorderWrapper"]:has(div.item-card-marker) {
-        background-color: #262626 !important;
+        background-color: #747474 !important;
         padding: 20px !important;
         border-radius: 12px !important;
         border: 1px solid #333 !important;
