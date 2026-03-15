@@ -4,11 +4,13 @@ import re
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 세션 초기화 (데이터 관리를 위한 리스트 구조)
-if 'items' not in st.session_state:
-    st.session_state.items = [{"name": "필보", "price": "7,500,000"}]
+# 2. 세션 초기화 (사용자님의 원본 방식)
+if 'item_count' not in st.session_state:
+    st.session_state.item_count = 1
+    st.session_state['ni_0'] = '필보'
+    st.session_state['pi_0'] = '7,500,000'
 
-# --- 3. 커스텀 CSS (X버튼 및 디자인 유지) ---
+# --- 3. 커스텀 CSS ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
@@ -28,12 +30,10 @@ st.markdown("""
     }
     div[data-testid="stTextInput"] label { display: none !important; }
     input { background-color: #1E1E1E !important; border: 1px solid #444 !important; border-radius: 8px !important; color: white !important; }
-    
-    /* X 버튼 중앙 정렬 */
     div.stButton > button[key^="del_"] {
-        height: 42px !important; width: 42px !important; min-width: 42px !important;
-        padding: 0 !important; display: flex !important; align-items: center !important;
-        justify-content: center !important; background-color: #333 !important;
+        height: 42px !important; width: 42px !important; display: flex !important;
+        align-items: center !important; justify-content: center !important;
+        padding: 0 !important; background-color: #333 !important;
         border: 1px solid #444 !important; color: #888 !important;
         font-size: 20px !important; line-height: 1 !important; border-radius: 8px !important;
     }
@@ -56,13 +56,16 @@ def format_comma(val):
     num = re.sub(r'[^0-9]', '', str(val))
     return f"{int(num):,}" if num else "0"
 
-def add_item():
-    st.session_state.items.append({"name": "필보", "price": "0"})
+def on_price_change(idx):
+    key = f"pi_{idx}"
+    if key in st.session_state:
+        st.session_state[key] = format_comma(st.session_state[key])
 
-def delete_item(idx):
-    st.session_state.items.pop(idx)
-    # 삭제 후 즉시 페이지 리프레시하여 위젯 상태 동기화
-    st.rerun()
+def add_item():
+    existing_indices = [int(k.split('_')[1]) for k in st.session_state.keys() if k.startswith('ni_')]
+    next_idx = max(existing_indices) + 1 if existing_indices else 0
+    st.session_state[f'ni_{next_idx}'] = '필보'
+    st.session_state[f'pi_{next_idx}'] = '0'
 
 # --- 5. 메인 화면 ---
 st.title("🎲 아이온2 필보 정산기")
@@ -80,41 +83,45 @@ with col_left:
     st.write("---")
     st.write("#### 📦 판매 아이템 리스트")
     
-    # [수정 핵심] 루프 돌 때 현재 세션의 최신 데이터로 위젯 생성
-    for i, item in enumerate(st.session_state.items):
+    # 세션 키 기반 아이템 렌더링 (사용자님 원본 로직)
+    item_indices = sorted([int(k.split('_')[1]) for k in st.session_state.keys() if k.startswith('ni_')])
+    
+    display_num = 1
+    for i in item_indices:
+        # 안전장치: 루프 도중 세션 키가 유실될 경우 대비
+        if f'ni_{i}' not in st.session_state: continue
+        
         with st.container(border=True):
             st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
-            
-            # 1행
             r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
             with r1_c1:
-                st.markdown(f'<div class="item-badge">{i+1}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="item-badge">{display_num}</div>', unsafe_allow_html=True)
             with r1_c2:
-                # 보스명 업데이트
-                st.session_state.items[i]["name"] = st.text_input(f"보스명_{i}", value=item["name"], key=f"ni_{i}")
+                st.text_input("보스명", key=f"ni_{i}")
             with r1_c3:
-                # 삭제 버튼 (고유 콜백 대신 직접 호출하여 세션 꼬임 방지)
                 if st.button("✕", key=f"del_{i}"):
-                    delete_item(i)
+                    # 삭제 시 세션에서 즉시 제거하고 rerun
+                    del st.session_state[f'ni_{i}']
+                    del st.session_state[f'pi_{i}']
+                    st.rerun()
             
-            # 2행
             r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
             with r2_c1:
                 st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
             with r2_c2:
-                raw_price = st.text_input(f"가격_{i}", value=item["price"], key=f"pi_{i}")
-                # 콤마 실시간 변환 및 저장
-                clean_price = re.sub(r'[^0-9]', '', raw_price)
-                st.session_state.items[i]["price"] = format_comma(clean_price)
+                st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
             with r2_c3:
                 st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
+            
+            display_num += 1
 
     st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
 
 # --- 6. 계산 로직 ---
 total_sales = 0
-for item in st.session_state.items:
-    val = re.sub(r'[^0-9]', '', item["price"])
+current_pi_keys = [k for k in st.session_state.keys() if k.startswith('pi_')]
+for pk in current_pi_keys:
+    val = re.sub(r'[^0-9]', '', st.session_state[pk])
     total_sales += int(val) if val else 0
 
 pure_profit = total_sales * 0.78 
