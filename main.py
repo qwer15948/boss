@@ -5,14 +5,14 @@ import uuid
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 세션 초기화 (딕셔너리 구조로 변경하여 데이터 독립성 보장)
+# 2. 세션 초기화 (더욱 견고한 방식)
 if 'items' not in st.session_state:
-    # 각 아이템은 고유 ID를 키로 가짐
+    first_id = str(uuid.uuid4())
     st.session_state.items = {
-        str(uuid.uuid4()): {"name": "필보", "price": "7,500,000"}
+        first_id: {"name": "필보", "price": "7,500,000"}
     }
 
-# --- 3. 커스텀 CSS (카드 디자인 및 X버튼 정밀 보정) ---
+# --- 3. 커스텀 CSS ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
@@ -45,10 +45,12 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 삭제 버튼(X) 정중앙 완벽 정렬 및 크기 고정 */
+    /* 삭제 버튼(X) 정중앙 완벽 정렬 - min-height 추가로 찌그러짐 방지 */
     div.stButton > button[key^="del_"] {
         height: 42px !important;
+        min-height: 42px !important;
         width: 42px !important;
+        min-width: 42px !important;
         padding: 0 !important;
         display: flex !important;
         align-items: center !important;
@@ -60,6 +62,7 @@ st.markdown("""
         line-height: 1 !important;
         border-radius: 8px !important;
     }
+    
     div.stButton > button[key="add_btn"] {
         background-color: #333 !important;
         color: #FFB800 !important;
@@ -86,11 +89,6 @@ def add_item():
     new_id = str(uuid.uuid4())
     st.session_state.items[new_id] = {"name": "필보", "price": "0"}
 
-def delete_item(item_id):
-    if item_id in st.session_state.items:
-        del st.session_state.items[item_id]
-        st.rerun()
-
 # --- 5. 메인 화면 ---
 st.title("🎲 아이온2 필보 정산기")
 st.caption("거래소 수수료 20% | 등록 수수료 2% | 개인 판매 수수료 10%")
@@ -107,9 +105,12 @@ with col_left:
     st.write("---")
     st.write("#### 📦 판매 아이템 리스트")
     
+    # 딕셔너리 안전하게 복사해서 순회
+    items_dict = st.session_state.get('items', {})
     display_num = 1
-    # 딕셔너리를 순회하며 카드 생성
-    for item_id, item_info in list(st.session_state.items.items()):
+    
+    for item_id in list(items_dict.keys()):
+        item_info = items_dict[item_id]
         with st.container(border=True):
             st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
             
@@ -118,30 +119,30 @@ with col_left:
             with r1_c1:
                 st.markdown(f'<div class="item-badge">{display_num}</div>', unsafe_allow_html=True)
             with r1_c2:
-                # 위젯 키에 UUID를 사용하여 데이터 꼬임 방지
+                # 위젯에서 직접 세션 상태를 수정하도록 함
                 st.session_state.items[item_id]["name"] = st.text_input(
                     "보스명", value=item_info["name"], key=f"ni_{item_id}"
                 )
             with r1_c3:
-                # 삭제 버튼
+                # 삭제 로직: 버튼 클릭 시 세션에서 즉시 삭제 후 리런
                 if st.button("✕", key=f"del_{item_id}"):
-                    delete_item(item_id)
+                    if item_id in st.session_state.items:
+                        del st.session_state.items[item_id]
+                        st.rerun()
             
             # 2행
             r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
             with r2_c1:
                 st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
             with r2_c2:
-                raw_price = st.text_input(
-                    "가격", value=item_info["price"], key=f"pi_{item_id}"
-                )
-                # 입력 시 즉시 콤마 적용
-                formatted = format_comma(raw_price)
-                if formatted != raw_price:
-                    st.session_state.items[item_id]["price"] = formatted
+                input_val = st.text_input("가격", value=item_info["price"], key=f"pi_{item_id}")
+                # 콤마 실시간 변환
+                new_formatted = format_comma(input_val)
+                if new_formatted != input_val:
+                    st.session_state.items[item_id]["price"] = new_formatted
                     st.rerun()
                 else:
-                    st.session_state.items[item_id]["price"] = raw_price
+                    st.session_state.items[item_id]["price"] = input_val
             with r2_c3:
                 st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
             
@@ -151,7 +152,8 @@ with col_left:
 
 # --- 6. 계산 로직 ---
 total_sales = 0
-for item in st.session_state.items.values():
+final_items = st.session_state.get('items', {})
+for item in final_items.values():
     val = re.sub(r'[^0-9]', '', item["price"])
     total_sales += int(val) if val else 0
 
