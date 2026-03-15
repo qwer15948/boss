@@ -4,42 +4,44 @@ import re
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 세션 초기화 (item_data 구조 단순화)
+# 2. 세션 초기화
 if 'item_count' not in st.session_state:
     st.session_state.item_count = 1
     st.session_state['ni_0'] = '필보'
     st.session_state['pi_0'] = '7,500,000'
 
-# --- 3. 커스텀 CSS (불필요한 부분 삭제 및 최적화) ---
+# --- 3. 커스텀 CSS (정렬 및 X버튼 중앙화) ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
     .main { background-color: #0E1117; }
     
-    /* 카드 컨테이너 스타일 */
+    /* 카드 컨테이너: 불필요한 공백 제거 */
     .custom-card {
         background-color: #262626;
-        padding: 20px;
+        padding: 18px;
         border-radius: 12px;
         border: 1px solid #333;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
     }
     
-    /* 판매가 라벨 줄바꿈 방지 */
-    .no-wrap {
-        white-space: nowrap;
+    /* 판매가 라벨 정렬 */
+    .label-box {
         color: #AAA;
         font-size: 14px;
         font-weight: bold;
+        white-space: nowrap;
         display: flex;
         align-items: center;
-        height: 42px;
+        height: 42px; /* 입력창과 높이 통일 */
     }
 
+    /* 번호 배지 */
     .item-badge {
         background-color: #FFB800; color: #000; border-radius: 50%;
-        width: 24px; height: 24px; display: flex; align-items: center;
-        justify-content: center; font-weight: bold; font-size: 13px;
+        width: 22px; height: 22px; display: flex; align-items: center;
+        justify-content: center; font-weight: bold; font-size: 12px;
+        margin-top: 10px;
     }
 
     /* 입력창 디자인 */
@@ -51,23 +53,32 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 삭제 버튼 */
-    .del-btn-style > button {
-        height: 42px; width: 42px; background-color: #333;
-        border: 1px solid #444; color: #888; border-radius: 8px;
-        margin-top: 0px !important;
+    /* 삭제 버튼 (X) 중앙 정렬 핵심 */
+    .stButton > button {
+        height: 42px !important;
+        width: 42px !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #333 !important;
+        border: 1px solid #444 !important;
+        color: #888 !important;
+        border-radius: 8px !important;
+        line-height: 1 !important; /* X 글자 수직 중앙 */
     }
+    .stButton > button:hover { border-color: #ff4b4b !important; color: #ff4b4b !important; }
     
-    /* 아이템 추가 버튼 깨짐 방지 */
-    .add-btn-container > button {
+    /* 아이템 추가 버튼 */
+    .add-btn-wrap > button {
+        height: 48px !important;
         background-color: #333 !important;
         border: 1px solid #444 !important;
         color: white !important;
-        font-weight: bold !important;
-        height: 45px;
+        font-size: 15px !important;
     }
 
-    /* 결과창 */
+    /* 정산 결과창 */
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
     .gold-val { color: #FFB800; font-weight: bold; font-size: 28px; }
     .white-val { color: #FFFFFF; font-weight: bold; font-size: 28px; }
@@ -76,17 +87,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 유틸리티 함수 ---
+# --- 기능 함수 ---
 def format_comma(val):
     num = re.sub(r'[^0-9]', '', str(val))
-    if not num: return "0"
-    return f"{int(num):,}"
+    return f"{int(num):,}" if num else "0"
 
 def on_price_change(idx):
-    # 입력된 값을 즉시 콤마 포맷으로 변환하여 세션에 다시 저장
     key = f"pi_{idx}"
-    raw = st.session_state[key]
-    st.session_state[key] = format_comma(raw)
+    st.session_state[key] = format_comma(st.session_state[key])
 
 def add_item():
     idx = st.session_state.item_count
@@ -111,38 +119,37 @@ with col_left:
     st.write("#### 📦 판매 아이템 리스트")
     
     for i in range(st.session_state.item_count):
-        # 삭제된 아이템 건너뛰기 로직 (간단하게 구현)
         if f'ni_{i}' not in st.session_state: continue
         
+        # 카드 시작
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         
-        # 1층: 번호 + 이름 + 삭제
-        c1, c2, c3 = st.columns([0.8, 8, 1.2])
-        with c1:
-            st.markdown(f'<div style="margin-top:10px;" class="item-badge">{i+1}</div>', unsafe_allow_html=True)
-        with c2:
-            st.text_input("보스명", key=f"ni_{i}")
-        with c3:
-            st.markdown('<div class="del-btn-style">', unsafe_allow_html=True)
+        # 1행: [번호] [보스명 입력] [X버튼]
+        r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
+        with r1_c1:
+            st.markdown(f'<div class="item-badge">{i+1}</div>', unsafe_allow_html=True)
+        with r1_c2:
+            st.text_input("보스명", key=f"ni_{i}", placeholder="보스 이름 입력")
+        with r1_c3:
+            # X버튼을 컨테이너로 감싸지 않고 바로 배치하여 정렬 문제 해결
             if st.button("✕", key=f"del_{i}"):
                 del st.session_state[f'ni_{i}']
                 del st.session_state[f'pi_{i}']
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
         
-        # 2층: 판매가 + 가격 + 원 (줄바꿈 방지)
-        p1, p2, p3 = st.columns([1.8, 7.2, 1])
-        with p1:
-            st.markdown('<div class="no-wrap">판매가</div>', unsafe_allow_html=True)
-        with p2:
-            # 실시간 콤마 핵심: on_change
+        # 2행: [판매가 라벨] [가격 입력] [원 라벨]
+        r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
+        with r2_c1:
+            st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
+        with r2_c2:
             st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
-        with p3:
-            st.markdown('<div class="no-wrap">원</div>', unsafe_allow_html=True)
+        with r2_c3:
+            st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
             
         st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="add-btn-container">', unsafe_allow_html=True)
+    # 추가 버튼 깨짐 방지
+    st.markdown('<div class="add-btn-wrap">', unsafe_allow_html=True)
     st.button("＋ 아이템 추가", on_click=add_item, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
