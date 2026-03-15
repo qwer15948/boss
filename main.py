@@ -161,7 +161,6 @@ with col_right:
     copy_text = f"💎 아이온2 필보 정산 결과\n- 거래소 등록가: {max(0, int(listing_price)):,}원\n- 인당 실수령액: {max(0, int(real_share)):,}원"
     
     # st.text_area를 활용한 간편 복사 UI
-    st.info("아래 텍스트를 드래그하여 복사하세요.")
     st.code(copy_text, language=None)
     
     st.markdown(f"""
