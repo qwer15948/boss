@@ -4,25 +4,26 @@ import re
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 세션 초기화 (item_data 관리)
+# 2. 세션 초기화
 if 'item_count' not in st.session_state:
     st.session_state.item_count = 1
     st.session_state['ni_0'] = '필보'
     st.session_state['pi_0'] = '7,500,000'
 
-# --- 3. 커스텀 CSS (카드 컨테이너 및 위젯 정렬 통합) ---
+# --- 3. 커스텀 CSS (카드 컨테이너 선택자 전면 수정) ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
     .main { background-color: #0E1117; }
     
-    /* [핵심] 컨테이너를 카드 스타일로 변신 */
-    [data-testid="stVerticalBlockBorderWrapper"]:has(div.item-card-marker) {
-        background-color: #747474 !important;
+    /* [수정 핵심] 최신 Streamlit 컨테이너를 잡는 가장 확실한 방법 */
+    div[data-testid="stVerticalBlock"]:has(> div.item-card-marker) {
+        background-color: #262626 !important;
         padding: 20px !important;
         border-radius: 12px !important;
         border: 1px solid #333 !important;
         margin-bottom: 15px !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
 
     /* 레이블 및 수직 정렬 */
@@ -46,7 +47,7 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 삭제 버튼(X) 정중앙 고정 */
+    /* 삭제 버튼(X) 중앙 고정 */
     div.stButton > button[key^="del_"] {
         height: 42px !important;
         width: 42px !important;
@@ -77,14 +78,15 @@ st.markdown("""
 
     /* 정산 결과 섹션 디자인 */
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
-    .gold-val { color: #FFB800; font-weight: bold; font-size: 20px !important; }
-    .white-val { color: #FFFFFF; font-weight: bold; font-size: 20px !important; }
+    .gold-val, .white-val { font-weight: bold; font-size: 20px !important; }
+    .gold-val { color: #FFB800; }
+    .white-val { color: #FFFFFF; }
     .summary-box { background-color: #161616; padding: 20px; border-radius: 10px; border-left: 4px solid #FFB800; }
     hr { border: 0.1px solid #333; margin: 20px 0; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. 기능 함수 (콤마 및 세션 관리) ---
+# --- 4. 기능 함수 ---
 def format_comma(val):
     num = re.sub(r'[^0-9]', '', str(val))
     return f"{int(num):,}" if num else "0"
@@ -99,7 +101,7 @@ def add_item():
     st.session_state[f'pi_{idx}'] = '0'
     st.session_state.item_count += 1
 
-# --- 5. 메인 화면 구성 ---
+# --- 5. 메인 화면 ---
 st.title("🎲 아이온2 필보 정산기")
 st.caption("실시간 콤마 입력 및 자동 정산 시스템")
 
@@ -117,27 +119,25 @@ with col_left:
     st.write("#### 📦 판매 아이템 리스트")
     
     for i in range(st.session_state.item_count):
-        # 삭제된 항목은 건너뛰기
         if f'ni_{i}' not in st.session_state: continue
         
-        # [카드 컨테이너 시작]
+        # [핵심 변경점] 컨테이너 내부에 직접 마커를 배치
         with st.container():
-            # CSS가 이 상자를 찾아 테두리를 그릴 수 있도록 마커 삽입
             st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
             
-            # 1행: 번호배지 | 보스명 입력 | 삭제버튼
+            # 1행
             r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
             with r1_c1:
                 st.markdown(f'<div class="item-badge">{i+1}</div>', unsafe_allow_html=True)
             with r1_c2:
-                st.text_input("보스명", key=f"ni_{i}", placeholder="보스 이름 입력")
+                st.text_input("보스명", key=f"ni_{i}")
             with r1_c3:
                 if st.button("✕", key=f"del_{i}"):
                     del st.session_state[f'ni_{i}']
                     del st.session_state[f'pi_{i}']
                     st.rerun()
             
-            # 2행: 판매가 라벨 | 가격 입력 | 단위
+            # 2행
             r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
             with r2_c1:
                 st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
@@ -146,17 +146,15 @@ with col_left:
             with r2_c3:
                 st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
 
-    # 아이템 추가 버튼 (카드 리스트 외부)
     st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
 
-# --- 6. 계산 로직 ---
+# --- 6. 계산 및 결과 (동일) ---
 total_sales = 0
 for i in range(st.session_state.item_count):
     if f'pi_{i}' in st.session_state:
         val = re.sub(r'[^0-9]', '', st.session_state[f'pi_{i}'])
         total_sales += int(val) if val else 0
 
-# 수수료 공식 적용
 pure_profit = total_sales * 0.78 
 listing_price = (pure_profit / (k - 0.12)) - a 
 real_share = listing_price * 0.88 
@@ -165,15 +163,9 @@ with col_right:
     st.subheader("📊 정산 결과")
     res_c1, res_c2 = st.columns(2)
     with res_c1:
-        st.markdown(f"""<div class="result-card">
-            <p style="color:#888; font-size: 13px;">인당 최종 실수령액</p>
-            <p class="gold-val">{max(0, int(real_share)):,}원</p>
-        </div>""", unsafe_allow_html=True)
+        st.markdown(f'<div class="result-card"><p style="color:#888; font-size: 13px;">인당 최종 실수령액</p><p class="gold-val">{max(0, int(real_share)):,}원</p></div>', unsafe_allow_html=True)
     with res_c2:
-        st.markdown(f"""<div class="result-card">
-            <p style="color:#888; font-size: 13px;">팀원 거래소 등록가</p>
-            <p class="white-val">{max(0, int(listing_price)):,}원</p>
-        </div>""", unsafe_allow_html=True)
+        st.markdown(f'<div class="result-card"><p style="color:#888; font-size: 13px;">팀원 거래소 등록가</p><p class="white-val">{max(0, int(listing_price)):,}원</p></div>', unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="summary-box">
