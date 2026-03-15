@@ -4,34 +4,32 @@ import re
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 세션 초기화
+# 2. 세션 초기화 (item_data 관리)
 if 'item_count' not in st.session_state:
     st.session_state.item_count = 1
     st.session_state['ni_0'] = '필보'
     st.session_state['pi_0'] = '7,500,000'
 
-# --- 3. 커스텀 CSS (강력한 정렬 및 버튼 고정) ---
+# --- 3. 커스텀 CSS (카드 컨테이너 및 위젯 정렬 통합) ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
     .main { background-color: #0E1117; }
     
-    /* 카드 컨테이너 */
-    .custom-card {
-        background-color: #262626;
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid #333;
-        margin-bottom: 15px;
+    /* [핵심] 컨테이너를 카드 스타일로 변신 */
+    [data-testid="stVerticalBlockBorderWrapper"]:has(div.item-card-marker) {
+        background-color: #262626 !important;
+        padding: 20px !important;
+        border-radius: 12px !important;
+        border: 1px solid #333 !important;
+        margin-bottom: 15px !important;
     }
-    
-    /* 판매가/원 라벨 수직 정렬 */
+
+    /* 레이블 및 수직 정렬 */
     .label-box {
         color: #AAA; font-size: 14px; font-weight: bold; white-space: nowrap;
         display: flex; align-items: center; height: 42px;
     }
-
-    /* 번호 배지 */
     .item-badge {
         background-color: #FFB800; color: #000; border-radius: 50%;
         width: 22px; height: 22px; display: flex; align-items: center;
@@ -39,10 +37,8 @@ st.markdown("""
         margin-top: 10px;
     }
 
-    /* 모든 텍스트 입력창 라벨 숨기기 */
+    /* 입력창 디자인 */
     div[data-testid="stTextInput"] label { display: none !important; }
-    
-    /* 입력창 배경 및 테두리 */
     input {
         background-color: #1E1E1E !important;
         border: 1px solid #444 !important;
@@ -50,7 +46,7 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 삭제 버튼 (X) 정중앙 정렬 - 핵심 */
+    /* 삭제 버튼(X) 정중앙 고정 */
     div.stButton > button[key^="del_"] {
         height: 42px !important;
         width: 42px !important;
@@ -63,25 +59,23 @@ st.markdown("""
         color: #888 !important;
         font-size: 18px !important;
         line-height: 1 !important;
+        margin-top: 0px !important;
     }
-    
-    /* 아이템 추가 버튼 - 디자인 고정 */
+    div.stButton > button[key^="del_"]:hover { border-color: #ff4b4b !important; color: #ff4b4b !important; }
+
+    /* 아이템 추가 버튼 스타일 */
     div.stButton > button[key="add_btn"] {
         background-color: #333 !important;
         color: #FFB800 !important;
         border: 1px solid #FFB800 !important;
         height: 50px !important;
         font-weight: bold !important;
-        font-size: 16px !important;
-        margin-top: 10px !important;
         border-radius: 10px !important;
+        margin-top: 10px !important;
     }
-    div.stButton > button[key="add_btn"]:hover {
-        background-color: #FFB800 !important;
-        color: #000 !important;
-    }
+    div.stButton > button[key="add_btn"]:hover { background-color: #FFB800 !important; color: #000 !important; }
 
-    /* 정산 결과 섹션 */
+    /* 정산 결과 섹션 디자인 */
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
     .gold-val { color: #FFB800; font-weight: bold; font-size: 28px; }
     .white-val { color: #FFFFFF; font-weight: bold; font-size: 28px; }
@@ -90,7 +84,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 유틸리티 및 기능 함수 ---
+# --- 4. 기능 함수 (콤마 및 세션 관리) ---
 def format_comma(val):
     num = re.sub(r'[^0-9]', '', str(val))
     return f"{int(num):,}" if num else "0"
@@ -105,8 +99,9 @@ def add_item():
     st.session_state[f'pi_{idx}'] = '0'
     st.session_state.item_count += 1
 
-# --- 메인 화면 ---
+# --- 5. 메인 화면 구성 ---
 st.title("🎲 아이온2 필보 정산기")
+st.caption("실시간 콤마 입력 및 자동 정산 시스템")
 
 col_left, col_right = st.columns([1, 1], gap="large")
 
@@ -122,75 +117,46 @@ with col_left:
     st.write("#### 📦 판매 아이템 리스트")
     
     for i in range(st.session_state.item_count):
+        # 삭제된 항목은 건너뛰기
         if f'ni_{i}' not in st.session_state: continue
         
-        # --- 수정한 CSS (이 부분이 핵심입니다) ---
-st.markdown("""
-    <style>
-    /* 1. 실제 위젯 컨테이너를 카드 스타일로 변환 */
-    [data-testid="stVerticalBlockBorderWrapper"]:has(div.item-card-inner) {
-        background-color: #262626 !important;
-        padding: 20px !important;
-        border-radius: 12px !important;
-        border: 1px solid #444 !important;
-        margin-bottom: 15px !important;
-    }
-    
-    /* 2. 내부 여백 미세 조정 */
-    div.item-card-inner {
-        margin-bottom: -10px; /* 불필요한 하단 여백 제거 */
-    }
+        # [카드 컨테이너 시작]
+        with st.container():
+            # CSS가 이 상자를 찾아 테두리를 그릴 수 있도록 마커 삽입
+            st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
+            
+            # 1행: 번호배지 | 보스명 입력 | 삭제버튼
+            r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
+            with r1_c1:
+                st.markdown(f'<div class="item-badge">{i+1}</div>', unsafe_allow_html=True)
+            with r1_c2:
+                st.text_input("보스명", key=f"ni_{i}", placeholder="보스 이름 입력")
+            with r1_c3:
+                if st.button("✕", key=f"del_{i}"):
+                    del st.session_state[f'ni_{i}']
+                    del st.session_state[f'pi_{i}']
+                    st.rerun()
+            
+            # 2행: 판매가 라벨 | 가격 입력 | 단위
+            r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
+            with r2_c1:
+                st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
+            with r2_c2:
+                st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
+            with r2_c3:
+                st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
 
-    /* 3. 삭제 버튼(X) 위치 보정 */
-    div[data-testid="stColumn"]:has(button[key^="del_"]) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # 아이템 추가 버튼 (카드 리스트 외부)
+    st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
 
-# --- 수정한 아이템 리스트 루프 ---
-for i in range(st.session_state.item_count):
-    if f'ni_{i}' not in st.session_state: continue
-    
-    # [변경] markdown div로 감싸는 대신 st.container(border=True) 또는 커스텀 컨테이너 사용
-    with st.container():
-        # CSS가 이 컨테이너를 찾을 수 있게 마커를 심어줍니다.
-        st.markdown('<div class="item-card-inner"></div>', unsafe_allow_html=True)
-        
-        # 1행: 배지, 이름, 삭제
-        r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
-        with r1_c1:
-            st.markdown(f'<div class="item-badge">{i+1}</div>', unsafe_allow_html=True)
-        with r1_c2:
-            st.text_input("보스명", key=f"ni_{i}")
-        with r1_c3:
-            if st.button("✕", key=f"del_{i}"):
-                del st.session_state[f'ni_{i}']
-                del st.session_state[f'pi_{i}']
-                st.rerun()
-        
-        # 2행: 판매가 라벨, 가격, 단위
-        r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
-        with r2_c1:
-            st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
-        with r2_c2:
-            st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
-        with r2_c3:
-            st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
-
-# 아이템 추가 버튼은 카드 밖으로!
-st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
-
-
-# --- 계산 로직 ---
+# --- 6. 계산 로직 ---
 total_sales = 0
 for i in range(st.session_state.item_count):
     if f'pi_{i}' in st.session_state:
         val = re.sub(r'[^0-9]', '', st.session_state[f'pi_{i}'])
         total_sales += int(val) if val else 0
 
+# 수수료 공식 적용
 pure_profit = total_sales * 0.78 
 listing_price = (pure_profit / (k - 0.12)) - a 
 real_share = listing_price * 0.88 
@@ -199,9 +165,15 @@ with col_right:
     st.subheader("📊 정산 결과")
     res_c1, res_c2 = st.columns(2)
     with res_c1:
-        st.markdown(f'<div class="result-card"><p style="color:#888; font-size: 13px;">인당 최종 실수령액</p><p class="gold-val">{max(0, int(real_share)):,}원</p></div>', unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-card">
+            <p style="color:#888; font-size: 13px;">인당 최종 실수령액</p>
+            <p class="gold-val">{max(0, int(real_share)):,}원</p>
+        </div>""", unsafe_allow_html=True)
     with res_c2:
-        st.markdown(f'<div class="result-card"><p style="color:#888; font-size: 13px;">팀원 거래소 등록가</p><p class="white-val">{max(0, int(listing_price)):,}원</p></div>', unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-card">
+            <p style="color:#888; font-size: 13px;">팀원 거래소 등록가</p>
+            <p class="white-val">{max(0, int(listing_price)):,}원</p>
+        </div>""", unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="summary-box">
