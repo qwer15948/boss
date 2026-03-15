@@ -4,11 +4,13 @@ import re
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 세션 초기화 (리스트 구조로 관리)
+# 2. 세션 초기화 (순서와 구조를 에러 방지용으로 재설정)
 if 'items' not in st.session_state:
-    st.session_state.items = [{"name": "필보", "price": "7,500,000"}]
+    st.session_state.items = [{"name": "필보", "price": "7,500,000", "id": 0}]
+if 'id_counter' not in st.session_state:
+    st.session_state.id_counter = 1
 
-# --- 3. 커스텀 CSS (디자인 유지 및 X버튼 보정) ---
+# --- 3. 커스텀 CSS (디자인 및 X버튼 완벽 고정) ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
@@ -41,10 +43,11 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 삭제 버튼(X) 정중앙 고정 */
+    /* 삭제 버튼(X) 정중앙 완벽 정렬 및 찌그러짐 방지 */
     div.stButton > button[key^="del_"] {
         height: 42px !important;
         width: 42px !important;
+        min-width: 42px !important;
         padding: 0 !important;
         display: flex !important;
         align-items: center !important;
@@ -53,7 +56,7 @@ st.markdown("""
         border: 1px solid #444 !important;
         color: #888 !important;
         font-size: 18px !important;
-        line-height: 1 !important;
+        line-height: 0 !important;
         border-radius: 8px !important;
     }
     
@@ -80,11 +83,12 @@ def format_comma(val):
     return f"{int(num):,}" if num else "0"
 
 def add_item():
-    st.session_state.items.append({"name": "필보", "price": "0"})
-
-def delete_item(idx):
-    st.session_state.items.pop(idx)
-    st.rerun()
+    st.session_state.items.append({
+        "name": "필보", 
+        "price": "0", 
+        "id": st.session_state.id_counter
+    })
+    st.session_state.id_counter += 1
 
 # --- 5. 메인 화면 ---
 st.title("🎲 아이온2 필보 정산기")
@@ -102,35 +106,37 @@ with col_left:
     st.write("---")
     st.write("#### 📦 판매 아이템 리스트")
     
-    # 렌더링용 임시 리스트
-    for i, item in enumerate(st.session_state.items):
+    # 세션 데이터를 스냅샷(복사본)으로 만들어 순회 - 삭제 시 안전 보장
+    items_snapshot = list(enumerate(st.session_state.items))
+    
+    for i, item in items_snapshot:
+        uid = item["id"]
         with st.container(border=True):
             st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
             
-            # 1행
+            # 1행: 번호 | 보스명 | 삭제
             r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
             with r1_c1:
                 st.markdown(f'<div class="item-badge">{i+1}</div>', unsafe_allow_html=True)
             with r1_c2:
-                # value를 직접 제어하지 않고 session_state.items[i]를 업데이트
-                st.session_state.items[i]["name"] = st.text_input(
-                    f"보스명_{i}", value=item["name"], key=f"name_input_{i}"
-                )
+                # 보스명 입력 및 업데이트
+                new_name = st.text_input(f"n_{uid}", value=item["name"], key=f"nm_{uid}")
+                st.session_state.items[i]["name"] = new_name
             with r1_c3:
-                # 삭제 버튼 - 클릭 시 위에서 정의한 함수 호출
-                if st.button("✕", key=f"del_btn_{i}"):
-                    delete_item(i)
+                if st.button("✕", key=f"del_{uid}"):
+                    st.session_state.items.pop(i)
+                    st.rerun()
             
-            # 2행
+            # 2행: 라벨 | 가격 | 원
             r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
             with r2_c1:
                 st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
             with r2_c2:
-                raw_price = st.text_input(f"가격_{i}", value=item["price"], key=f"price_input_{i}")
-                # 콤마 변환 로직 (입력값이 바뀌었을 때만 갱신)
-                clean_price = re.sub(r'[^0-9]', '', raw_price)
-                formatted_price = format_comma(clean_price)
-                st.session_state.items[i]["price"] = formatted_price
+                price_input = st.text_input(f"p_{uid}", value=item["price"], key=f"pr_{uid}")
+                # 콤마 실시간 처리
+                clean_price = re.sub(r'[^0-9]', '', price_input)
+                formatted = format_comma(clean_price)
+                st.session_state.items[i]["price"] = formatted
             with r2_c3:
                 st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
 
@@ -143,6 +149,8 @@ for item in st.session_state.items:
     total_sales += int(val) if val else 0
 
 pure_profit = total_sales * 0.78 
+# 팀원이 판매자에게 줄 금액 (listing_price)
+# 실수령액이 listing_price * 0.88이 되도록 역산
 listing_price = (pure_profit / (k - 0.12)) - a 
 real_share = listing_price * 0.88 
 
