@@ -4,18 +4,18 @@ import re
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 세션 초기화 (딕셔너리 구조가 가장 안전합니다)
-if 'items' not in st.session_state:
+# 2. 세션 초기화 (AttributeError 방지를 위해 가장 먼저 수행)
+if 'items' not in st.session_state or st.session_state.items is None:
     st.session_state.items = {0: {"name": "필보", "price": "7,500,000"}}
 if 'id_ptr' not in st.session_state:
     st.session_state.id_ptr = 1
 
-# --- 3. 커스텀 CSS ---
+# --- 3. 커스텀 CSS (X버튼 정중앙 정렬 보정) ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
     
-    /* 카드 컨테이너 */
+    /* 카드 컨테이너 스타일 */
     div[data-testid="stVerticalBlockBorderWrapper"]:has(.item-card-marker) {
         background-color: #262626 !important;
         padding: 20px !important;
@@ -35,13 +35,14 @@ st.markdown("""
     div[data-testid="stTextInput"] label { display: none !important; }
     input { background-color: #1E1E1E !important; border: 1px solid #444 !important; border-radius: 8px !important; color: white !important; }
 
-    /* X 버튼 중앙 정렬 및 찌그러짐 방지 */
+    /* X 버튼: 찌그러짐 방지 및 정중앙 정렬 */
     div.stButton > button[key^="del_"] {
         height: 42px !important; width: 42px !important; min-width: 42px !important;
         padding: 0 !important; display: flex !important; align-items: center !important;
         justify-content: center !important; background-color: #333 !important;
         border: 1px solid #444 !important; color: #888 !important;
         font-size: 18px !important; line-height: 1 !important; border-radius: 8px !important;
+        margin-top: 0px !important;
     }
     
     div.stButton > button[key="add_btn"] {
@@ -79,13 +80,15 @@ with col_left:
     st.write("---")
     st.write("#### 📦 판매 아이템 리스트")
     
-    # ❗ [안정화 핵심] 딕셔너리의 키값들을 리스트로 복사하여 순회
-    item_keys = list(st.session_state.items.keys())
+    # [핵심] .get()을 사용하여 items가 없어도 에러가 나지 않게 함
+    current_items = st.session_state.get('items', {})
+    item_keys = sorted(list(current_items.keys()))
     
     for idx, k_id in enumerate(item_keys):
-        # 데이터가 중간에 사라졌을 경우를 대비한 안전장치
-        if k_id not in st.session_state.items: continue
-        
+        # 만약 루프 도중 데이터가 사라져도 안전하게 건너뜀
+        if k_id not in st.session_state.items:
+            continue
+            
         with st.container(border=True):
             st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
             r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
@@ -93,37 +96,47 @@ with col_left:
             with r1_c1:
                 st.markdown(f'<div class="item-badge">{idx+1}</div>', unsafe_allow_html=True)
             with r1_c2:
-                # 위젯 키에 k_id(고유번호)를 부여하여 데이터 고정
+                # 위젯에서 직접 세션 데이터 수정
                 st.session_state.items[k_id]["name"] = st.text_input(
-                    f"name_{k_id}", value=st.session_state.items[k_id]["name"], key=f"nm_{k_id}"
+                    f"name_{k_id}", 
+                    value=st.session_state.items[k_id]["name"], 
+                    key=f"nm_{k_id}"
                 )
             with r1_c3:
-                # 삭제 시 딕셔너리에서 해당 키만 제거
+                # 삭제 버튼 클릭 시 처리
                 if st.button("✕", key=f"del_{k_id}"):
-                    st.session_state.items.pop(k_id)
-                    st.rerun()
+                    if k_id in st.session_state.items:
+                        del st.session_state.items[k_id]
+                        st.rerun()
             
             r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
             with r2_c1:
                 st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
             with r2_c2:
-                # 실시간 콤마 적용 로직
-                p_val = st.text_input(f"price_{k_id}", value=st.session_state.items[k_id]["price"], key=f"pr_{k_id}")
+                p_val = st.text_input(
+                    f"price_{k_id}", 
+                    value=st.session_state.items[k_id]["price"], 
+                    key=f"pr_{k_id}"
+                )
+                # 실시간 콤마 업데이트
                 clean_p = re.sub(r'[^0-9]', '', p_val)
                 st.session_state.items[k_id]["price"] = format_comma(clean_p)
             with r2_c3:
                 st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
 
     if st.button("＋ 아이템 추가", key="add_btn", use_container_width=True):
-        new_id = st.session_state.id_ptr
-        st.session_state.items[new_id] = {"name": "필보", "price": "0"}
-        st.session_state.id_ptr += 1
+        new_ptr = st.session_state.get('id_ptr', 0)
+        if 'items' not in st.session_state:
+            st.session_state.items = {}
+        st.session_state.items[new_ptr] = {"name": "필보", "price": "0"}
+        st.session_state.id_ptr = new_ptr + 1
         st.rerun()
 
 # --- 6. 계산 로직 ---
 total_sales = 0
-for itm in st.session_state.items.values():
-    v = re.sub(r'[^0-9]', '', itm["price"])
+active_items = st.session_state.get('items', {})
+for itm in active_items.values():
+    v = re.sub(r'[^0-9]', '', itm.get("price", "0"))
     total_sales += int(v) if v else 0
 
 pure_profit = total_sales * 0.78 
