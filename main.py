@@ -158,7 +158,7 @@ with col_right:
         st.markdown(f'<div class="result-card"><p style="color:#888; font-size: 13px;">팀원 거래소 등록가</p><p class="white-val">{max(0, int(listing_price)):,}원</p></div>', unsafe_allow_html=True)
 
     # --- 결과 복사 기능 ---
-    copy_text = f"💎 아이온2 필보 정산 결과\n- 거래소 등록가: {max(0, int(listing_price)):,}원\n- 인당 실수령액: {max(0, int(real_share)):,}원"
+    copy_text = f"💎 아이온2 필보 정산 결과\n- 거래소 등록가: {max(0, int(listing_price)):,} 키나\n- 인당 실수령액: {max(0, int(real_share)):,} 키나"
     
     # st.text_area를 활용한 간편 복사 UI
     st.code(copy_text, language=None)
