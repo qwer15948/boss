@@ -75,8 +75,8 @@ st.markdown("""
     .gold-val, .white-val { font-weight: bold; font-size: 20px !important; }
     .gold-val { color: #FFB800; }
     .white-val { color: #FFFFFF; }
-    .summary-box { background-color: #161616; padding: 20px; border-radius: 10px; border-left: 4px solid #FFB800; }
-    hr { border: 0.1px solid #333; margin: 20px 20px; }
+    .summary-box { background-color: #161616; padding: 20px; border-radius: 10px; border-left: 4px solid #FFB800; margin: 20px;}
+    hr { border: 0.1px solid #333; margin: 20px ; }
     </style>
     """, unsafe_allow_html=True)
 
