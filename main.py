@@ -10,20 +10,20 @@ if 'item_count' not in st.session_state:
     st.session_state['ni_0'] = '필보'
     st.session_state['pi_0'] = '7,500,000'
 
-# --- 3. 커스텀 CSS (카드 컨테이너 선택자 전면 수정) ---
+# --- 3. 커스텀 CSS (카드 컨테이너 선택자 강화) ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
     .main { background-color: #0E1117; }
     
-    /* [수정 핵심] 최신 Streamlit 컨테이너를 잡는 가장 확실한 방법 */
-    div[data-testid="stVerticalBlock"]:has(> div.item-card-marker) {
+    /* [수정] 카드 컨테이너 스타일 - 가장 확실한 경로로 타격 */
+    [data-testid="stVerticalBlock"] > div:has(div.item-card-marker) {
         background-color: #262626 !important;
         padding: 20px !important;
         border-radius: 12px !important;
         border: 1px solid #333 !important;
         margin-bottom: 15px !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
     /* 레이블 및 수직 정렬 */
@@ -60,7 +60,6 @@ st.markdown("""
         color: #888 !important;
         font-size: 18px !important;
         line-height: 1 !important;
-        margin-top: 0px !important;
     }
     div.stButton > button[key^="del_"]:hover { border-color: #ff4b4b !important; color: #ff4b4b !important; }
 
@@ -74,7 +73,6 @@ st.markdown("""
         border-radius: 10px !important;
         margin-top: 10px !important;
     }
-    div.stButton > button[key="add_btn"]:hover { background-color: #FFB800 !important; color: #000 !important; }
 
     /* 정산 결과 섹션 디자인 */
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
@@ -103,11 +101,12 @@ def add_item():
 
 # --- 5. 메인 화면 ---
 st.title("🎲 아이온2 필보 정산기")
-st.caption("거래소 수수료 20% 등록 수수료 2% 개인 판매 수수료 10%")
+st.caption("거래소 수수료 20% | 등록 수수료 2% | 개인 판매 수수료 10%")
 
 col_left, col_right = st.columns([1, 1], gap="large")
 
 with col_left:
+    st.subheader("📋 입력 정보")
     in_c1, in_c2 = st.columns(2)
     with in_c1:
         k = st.number_input("👥 참여 인원", min_value=1, value=6, step=1)
@@ -117,17 +116,20 @@ with col_left:
     st.write("---")
     st.write("#### 📦 판매 아이템 리스트")
     
+    # 번호를 다시 매기기 위한 카운터
+    display_num = 1
+    
     for i in range(st.session_state.item_count):
         if f'ni_{i}' not in st.session_state: continue
         
-        # [핵심 변경점] 컨테이너 내부에 직접 마커를 배치
         with st.container():
             st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
             
-            # 1행
+            # 1행: 번호배지(display_num 사용) | 보스명 | 삭제
             r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
             with r1_c1:
-                st.markdown(f'<div class="item-badge">{i+1}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="item-badge">{display_num}</div>', unsafe_allow_html=True)
+                display_num += 1 # 번호 하나 썼으니 증가
             with r1_c2:
                 st.text_input("보스명", key=f"ni_{i}")
             with r1_c3:
@@ -136,7 +138,7 @@ with col_left:
                     del st.session_state[f'pi_{i}']
                     st.rerun()
             
-            # 2행
+            # 2행: 판매가 | 가격 | 원
             r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
             with r2_c1:
                 st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
@@ -147,7 +149,7 @@ with col_left:
 
     st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
 
-# --- 6. 계산 및 결과 (동일) ---
+# --- 6. 계산 로직 ---
 total_sales = 0
 for i in range(st.session_state.item_count):
     if f'pi_{i}' in st.session_state:
