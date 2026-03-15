@@ -13,6 +13,10 @@ if 'item_count' not in st.session_state:
 # --- 3. 커스텀 CSS (min-width 추가 및 X버튼 정렬) ---
 st.markdown("""
     <style>
+    html, body, [data-testid="stAppViewContainer"] {
+        background-color: #0E1117 !important;
+        color: #fafafa !important;
+    }
     .block-container { max-width: 950px; padding-top: 2rem; }
     
     div[data-testid="stVerticalBlockBorderWrapper"]:has(.item-card-marker) {
