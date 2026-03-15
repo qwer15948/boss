@@ -133,7 +133,7 @@ with col_left:
             with r2_c2:
                 st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
             with r2_c3:
-                st.markdown('<div class="label-box">키나</div>', unsafe_allow_html=True)
+                st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
             display_num += 1
 
     st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
@@ -153,22 +153,22 @@ with col_right:
     st.subheader("📊 정산 결과")
     res_c1, res_c2 = st.columns(2)
     with res_c1:
-        st.markdown(f'<div class="result-card"><p style="color:#888; font-size: 13px;">인당 최종 실수령액</p><p class="gold-val">{max(0, int(real_share)):,}키나</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="result-card"><p style="color:#888; font-size: 13px;">인당 최종 실수령액</p><p class="gold-val">{max(0, int(real_share)):,}원</p></div>', unsafe_allow_html=True)
     with res_c2:
-        st.markdown(f'<div class="result-card"><p style="color:#888; font-size: 13px;">팀원 거래소 등록가</p><p class="white-val">{max(0, int(listing_price)):,}키나</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="result-card"><p style="color:#888; font-size: 13px;">팀원 거래소 등록가</p><p class="white-val">{max(0, int(listing_price)):,}원</p></div>', unsafe_allow_html=True)
 
     # --- 결과 복사 기능 ---
-    copy_text = f"💎 아이온2 필보 정산 결과\n- 거래소 등록가: {max(0, int(listing_price)):,}키나\n- 인당 실수령액: {max(0, int(real_share)):,}키나"
+    copy_text = f"💎 아이온2 필보 정산 결과\n- 거래소 등록가: {max(0, int(listing_price)):,}원\n- 인당 실수령액: {max(0, int(real_share)):,}원"
     
     # st.text_area를 활용한 간편 복사 UI
     st.code(copy_text, language=None)
     
     st.markdown(f"""
     <div class="summary-box">
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#888;">📦 총 판매액 합계</span><b>{total_sales:,}키나</b></div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#888;">💰 판매자 순수 정산금 (0.78T)</span><span>{int(pure_profit):,}키나</span></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#888;">📦 총 판매액 합계</span><b>{total_sales:,}원</b></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#888;">💰 판매자 순수 정산금 (0.78T)</span><span>{int(pure_profit):,}원</span></div>
         <hr style="border:0.1px solid #333; margin:15px 0;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#AAA;">팀원 {k-1}명 총 이체액</span><span>{max(0, int(listing_price * (k-1))):,}키나</span></div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:#888;">판매자 본인 몫 (잔액)</span><b style="color:#FFB800;">{max(0, int(pure_profit - (listing_price * (k-1)))):,}키나</b></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#AAA;">팀원 {k-1}명 총 이체액</span><span>{max(0, int(listing_price * (k-1))):,}원</span></div>
+        <div style="display:flex; justify-content:space-between;"><span style="color:#888;">판매자 본인 몫 (잔액)</span><b style="color:#FFB800;">{max(0, int(pure_profit - (listing_price * (k-1)))):,}원</b></div>
     </div>
     """, unsafe_allow_html=True)
