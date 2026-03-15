@@ -103,12 +103,11 @@ def add_item():
 
 # --- 5. 메인 화면 ---
 st.title("🎲 아이온2 필보 정산기")
-st.caption("실시간 콤마 입력 및 자동 정산 시스템")
+st.caption("거래소 수수료 20% 등록 수수료 2% 개인 판매 수수료 10%")
 
 col_left, col_right = st.columns([1, 1], gap="large")
 
 with col_left:
-    st.subheader("📋 입력 정보")
     in_c1, in_c2 = st.columns(2)
     with in_c1:
         k = st.number_input("👥 참여 인원", min_value=1, value=6, step=1)
