@@ -23,16 +23,16 @@ real_share = listing_price * 0.88
 st.divider()
 col1, col2 = st.columns(2)
 with col1:
-    st.metric("👤 인당 최종 실수령액", f"{int(real_share):,} 원")
+    st.metric("인당 최종 실수령액", f"{int(real_share):,} 원")
     st.caption("등록비/수수료 뺀 진짜 이득")
 with col2:
-    st.warning("🚀 팀원 등록 가격")
+    st.metric("인당 등록 가격")
     st.header(f"{int(listing_price):,} 원")
-    st.caption("팀원들이 올릴 잡동사니 가격")
+    st.caption("거래소에 위 금액대로 올려주세요.")
 
-with st.expander("계산 과정 및 검증"):
+with st.expander("상세히 보기"):
     st.write(f"1. 총 판매 정산금 (80% 정산 - 2% 등록비): {int(pure_profit):,}원")
     st.write(f"2. 팀원에게 보낼 돈 총합: {int(listing_price):,}원 × {k-1}명 = {int(listing_price * (k-1)):,}원")
     st.write(f"3. 판매자 잔액: {int(pure_profit - listing_price * (k-1)):,}원")
-    st.write(f"4. 판매자가 처음에 쓴 등록비는 이미 정산금에서 뺐으므로 위 잔액이 실제 이득입니다.")
+    st.write(f"4. 판매자가 처음에 쓴 등록비는 이미 정산금에서 뺐으므로 위 잔액이 실제 이득")
     st.write(f"5. 팀원 실수령: {int(listing_price):,}원 - (10%수수료 + 2%등록비) = {int(real_share):,}원")
