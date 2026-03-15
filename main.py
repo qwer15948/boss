@@ -6,17 +6,17 @@ st.caption("판매자 2%+20% / 팀원 2%+10% 수수료 모두 반영")
 # 입력창
 prices_str = st.text_input("아이템 총 판매 가격 (만원 단위)", "750 750")
 k = st.number_input("총 인원 (판매자 포함)", min_value=1, value=6)
-a = st.number_input("추가적으로 빼야할 금액", min_value=0)
+a = st.number_input("추가적으로 빼야할 금액 (원 단위)", min_value=0)
 
 # [계산 로직]
 total_sales = sum([int(p) for p in prices_str.split() if p.strip()]) * 10000
 
+# 판매자 순수익 (거래소 80% - 등록비 2%)
 pure_profit = total_sales * 0.78
 
-# 공식: P = pure_profit / (k - 0.12)
-listing_price = pure_profit / (k - 0.12) - a
+listing_price = (pure_profit / (k - 0.12)) - a
 
-# 3. 인당 최종 실수령액 (X = 0.88P)
+# 인당 최종 실수령액 (X = 등록가에서 수령수수료 10% 및 등록비 2% 제외)
 real_share = listing_price * 0.88
 
 st.divider()
@@ -28,9 +28,24 @@ with col2:
     st.metric("인당 등록 가격", f"{int(listing_price):,} 원")
     st.caption("거래소에 위 금액대로 올려주세요.")
 
-with st.expander("상세히 보기"):
-    st.write(f"1. 총 판매 정산금 (80% 정산 - 2% 등록비): {int(pure_profit):,}원")
-    st.write(f"2. 팀원에게 보낼 돈 총합: {int(listing_price):,}원 × {k-1}명 = {int(listing_price * (k-1)):,}원")
-    st.write(f"3. 판매자 잔액: {int(pure_profit - listing_price * (k-1)):,}원")
-    st.write(f"4. 판매자가 처음에 쓴 등록비는 이미 정산금에서 뺐으므로 위 잔액이 실제 이득")
-    st.write(f"5. 팀원 실수령: {int(listing_price):,}원 - (10%수수료 + 2%등록비) = {int(real_share):,}원")
+with st.expander("📊 상세히 보기"):
+    st.write(f"**1. 판매 아이템 총 판매액:** {total_sales:,}원")
+    st.write(f"**2. 판매자 순수 정산금:** {int(pure_profit):,}원")
+    st.caption("(거래소 정산 80% - 본인 등록비 2% 반영)")
+    
+    st.write("---")
+    
+    st.write(f"**3. 팀원 개별 등록 가격:** {int(listing_price):,}원")
+    if a > 0:
+        st.caption(f"(추가 차감액 {a:,}원이 반영된 금액입니다.)")
+    
+    # 판매자가 팀원에게 보내고 남은 돈 계산
+    total_transfer = listing_price * (k - 1)
+    seller_pocket = pure_profit - total_transfer
+    
+    st.write(f"**4. 정산금 분배 결과:**")
+    st.write(f"- 판매자가 팀원({k-1}명)에게 보낼 총액: {int(total_transfer):,}원")
+    st.write(f"- 판매자 본인이 가질 잔액: **{int(seller_pocket):,}원**")
+    st.write(f"- 팀원 개별 최종 실수령액: **{int(real_share):,}원**")
+    
+    st.info("💡 판매자 잔액과 팀원 실수령액이 다른 이유는 팀원들은 정산 시 수수료(12%)가 추가로 발생하기 때문입니다. 최종적으로 가방에 들어오는 가치는 동일합니다.")
