@@ -116,7 +116,7 @@ with col_left:
         
         with st.container(border=True):
             st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
-            r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
+            r1_c1, r1_c2, r1_c3 = st.columns([1, 7.5, 1.5], gap="small")
             with r1_c1:
                 st.markdown(f'<div class="item-badge">{display_num}</div>', unsafe_allow_html=True)
             with r1_c2:
