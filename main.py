@@ -106,7 +106,6 @@ st.caption("거래소 수수료 20% | 등록 수수료 2% | 개인 판매 수수
 col_left, col_right = st.columns([1, 1], gap="large")
 
 with col_left:
-    st.subheader("📋 입력 정보")
     in_c1, in_c2 = st.columns(2)
     with in_c1:
         k = st.number_input("👥 참여 인원", min_value=1, value=6, step=1)
@@ -123,7 +122,6 @@ with col_left:
         if f'ni_{i}' not in st.session_state: continue
         
         with st.container():
-            st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
             
             # 1행: 번호배지(display_num 사용) | 보스명 | 삭제
             r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
