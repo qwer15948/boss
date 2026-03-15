@@ -28,7 +28,7 @@ with col2:
     st.metric("인당 등록 가격", f"{int(listing_price):,} 원")
     st.caption("거래소에 위 금액대로 올려주세요.")
 
-with st.expander("📊 상세히 보기"):
+with st.expander("상세히 보기"):
     st.write(f"**1. 판매 아이템 총 판매액:** {total_sales:,}원")
     st.write(f"**2. 판매자 순수 정산금:** {int(pure_profit):,}원")
     st.caption("(거래소 정산 80% - 본인 등록비 2% 반영)")
@@ -47,5 +47,3 @@ with st.expander("📊 상세히 보기"):
     st.write(f"- 판매자가 팀원({k-1}명)에게 보낼 총액: {int(total_transfer):,}원")
     st.write(f"- 판매자 본인이 가질 잔액: **{int(seller_pocket):,}원**")
     st.write(f"- 팀원 개별 최종 실수령액: **{int(real_share):,}원**")
-    
-    st.info("💡 판매자 잔액과 팀원 실수령액이 다른 이유는 팀원들은 정산 시 수수료(12%)가 추가로 발생하기 때문입니다. 최종적으로 가방에 들어오는 가치는 동일합니다.")
