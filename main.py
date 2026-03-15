@@ -10,23 +10,21 @@ if 'item_count' not in st.session_state:
     st.session_state['ni_0'] = '필보'
     st.session_state['pi_0'] = '7,500,000'
 
-# --- 3. 커스텀 CSS (카드 컨테이너 선택자 강화) ---
+# --- 3. 커스텀 CSS ---
 st.markdown("""
     <style>
     .block-container { max-width: 950px; padding-top: 2rem; }
     .main { background-color: #0E1117; }
     
-    /* [수정] 카드 컨테이너 스타일 - 가장 확실한 경로로 타격 */
-    [data-testid="stVerticalBlock"] > div:has(div.item-card-marker) {
+    /* 카드 컨테이너 스타일 - 선택자 강화 */
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(.item-card-marker) {
         background-color: #262626 !important;
         padding: 20px !important;
         border-radius: 12px !important;
         border: 1px solid #333 !important;
         margin-bottom: 15px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
-    /* 레이블 및 수직 정렬 */
     .label-box {
         color: #AAA; font-size: 14px; font-weight: bold; white-space: nowrap;
         display: flex; align-items: center; height: 42px;
@@ -38,7 +36,6 @@ st.markdown("""
         margin-top: 10px;
     }
 
-    /* 입력창 디자인 */
     div[data-testid="stTextInput"] label { display: none !important; }
     input {
         background-color: #1E1E1E !important;
@@ -47,11 +44,11 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 삭제 버튼(X) 중앙 고정 */
+    /* 삭제 버튼(X) 정중앙 정렬 수정 */
     div.stButton > button[key^="del_"] {
         height: 42px !important;
         width: 42px !important;
-        display: flex !important;
+        display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
         padding: 0 !important;
@@ -59,11 +56,10 @@ st.markdown("""
         border: 1px solid #444 !important;
         color: #888 !important;
         font-size: 18px !important;
-        line-height: 1 !important;
+        line-height: 0 !important; /* 폰트 여백 제거 */
     }
     div.stButton > button[key^="del_"]:hover { border-color: #ff4b4b !important; color: #ff4b4b !important; }
 
-    /* 아이템 추가 버튼 스타일 */
     div.stButton > button[key="add_btn"] {
         background-color: #333 !important;
         color: #FFB800 !important;
@@ -74,7 +70,6 @@ st.markdown("""
         margin-top: 10px !important;
     }
 
-    /* 정산 결과 섹션 디자인 */
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
     .gold-val, .white-val { font-weight: bold; font-size: 20px !important; }
     .gold-val { color: #FFB800; }
@@ -100,7 +95,7 @@ def add_item():
     st.session_state.item_count += 1
 
 # --- 5. 메인 화면 ---
-st.title("🎲 아이온2 필보 정산기")
+st.title("🎲 아이온2 정산기")
 st.caption("거래소 수수료 20% | 등록 수수료 2% | 개인 판매 수수료 10%")
 
 col_left, col_right = st.columns([1, 1], gap="large")
@@ -115,29 +110,32 @@ with col_left:
     st.write("---")
     st.write("#### 📦 판매 아이템 리스트")
     
-    # 번호를 다시 매기기 위한 카운터
     display_num = 1
-    
-    for i in range(st.session_state.item_count):
-        if f'ni_{i}' not in st.session_state: continue
-        
-        with st.container():
-            st.markdown('<div class="item-card-marker">', unsafe_allow_html=True)
+    # 세션 키 리스트를 고정해서 반복문 도중 변경 방지
+    current_keys = [int(k.split('_')[1]) for k in st.session_state.keys() if k.startswith('ni_')]
+    current_keys.sort()
+
+    for i in current_keys:
+        # border=True 옵션을 직접 주어 컨테이너가 분리되는 현상 원천 봉쇄
+        with st.container(border=True):
+            # CSS 선택자를 위한 마커
+            st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
             
-            # 1행: 번호배지(display_num 사용) | 보스명 | 삭제
+            # 1행
             r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
             with r1_c1:
                 st.markdown(f'<div class="item-badge">{display_num}</div>', unsafe_allow_html=True)
-                display_num += 1 # 번호 하나 썼으니 증가
+                display_num += 1
             with r1_c2:
                 st.text_input("보스명", key=f"ni_{i}")
             with r1_c3:
+                # 삭제 로직 개선: rerun을 통해 인덱스 꼬임 방지
                 if st.button("✕", key=f"del_{i}"):
-                    del st.session_state[f'ni_{i}']
-                    del st.session_state[f'pi_{i}']
+                    st.session_state.pop(f'ni_{i}')
+                    st.session_state.pop(f'pi_{i}')
                     st.rerun()
             
-            # 2행: 판매가 | 가격 | 원
+            # 2행
             r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
             with r2_c1:
                 st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
@@ -145,13 +143,13 @@ with col_left:
                 st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
             with r2_c3:
                 st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
 
     st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
 
 # --- 6. 계산 로직 ---
 total_sales = 0
-for i in range(st.session_state.item_count):
+active_keys = [int(k.split('_')[1]) for k in st.session_state.keys() if k.startswith('ni_')]
+for i in active_keys:
     if f'pi_{i}' in st.session_state:
         val = re.sub(r'[^0-9]', '', st.session_state[f'pi_{i}'])
         total_sales += int(val) if val else 0
