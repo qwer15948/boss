@@ -6,16 +6,15 @@ st.caption("판매자 2%+20% / 팀원 2%+10% 수수료 모두 반영")
 # 입력창
 prices_str = st.text_input("아이템 총 판매 가격 (만원 단위)", "750 750")
 k = st.number_input("총 인원 (판매자 포함)", min_value=1, value=6)
+a = st.number_input("추가적으로 빼야할 금액", min_value=0)
 
 # [계산 로직]
 total_sales = sum([int(p) for p in prices_str.split() if p.strip()]) * 10000
 
-# 1. 판매자 순수 정산액 (0.78T)
 pure_profit = total_sales * 0.78
 
-# 2. 팀원들이 거래소에 등록해야 할 가격 (P)
 # 공식: P = pure_profit / (k - 0.12)
-listing_price = pure_profit / (k - 0.12)
+listing_price = pure_profit / (k - 0.12) - a
 
 # 3. 인당 최종 실수령액 (X = 0.88P)
 real_share = listing_price * 0.88
