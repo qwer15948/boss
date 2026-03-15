@@ -122,6 +122,7 @@ with col_left:
         if f'ni_{i}' not in st.session_state: continue
         
         with st.container():
+            st.markdown('<div class="item-card-marker">', unsafe_allow_html=True)
             
             # 1행: 번호배지(display_num 사용) | 보스명 | 삭제
             r1_c1, r1_c2, r1_c3 = st.columns([0.8, 8, 1.2])
@@ -144,6 +145,7 @@ with col_left:
                 st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
             with r2_c3:
                 st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
     st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
 
