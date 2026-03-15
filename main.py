@@ -3,14 +3,9 @@ import streamlit as st
 # 1. 페이지 설정
 st.set_page_config(page_title="아이온2 정산기", layout="wide")
 
-# 2. 세션 초기화 (함수로 감싸서 더 안전하게 처리)
-def init_session():
-    if 'items' not in st.session_state:
-        st.session_state.items = {0: 750, 1: 750}
-    if 'next_id' not in st.session_state:
-        st.session_state.next_id = 2
-
-init_session()
+# 2. 세션 초기화 (에러 방지용 안전 장치)
+if 'price_list' not in st.session_state:
+    st.session_state.price_list = [750, 750]  # 가격만 저장하는 리스트
 
 # --- 스타일링 ---
 st.markdown("""
@@ -30,14 +25,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 데이터 조작 함수 ---
+# --- 기능 함수 ---
 def add_item():
-    st.session_state.items[st.session_state.next_id] = 0
-    st.session_state.next_id += 1
+    st.session_state.price_list.append(0)
 
-def remove_item(item_id):
-    if len(st.session_state.items) > 1:
-        del st.session_state.items[item_id]
+def remove_item(idx):
+    if len(st.session_state.price_list) > 1:
+        st.session_state.price_list.pop(idx)
+        st.rerun()
 
 # --- 화면 레이아웃 ---
 st.title("🛡️ ION2 Settlement Helper")
@@ -53,36 +48,32 @@ with col_left:
     st.write("---")
     st.write("#### 💰 판매 아이템 리스트")
     
-    # [에러 방지 핵심] items가 있는지 다시 한번 확인하고 리스트화
-    if 'items' in st.session_state and st.session_state.items:
-        item_ids = list(st.session_state.items.keys())
-        for item_id in item_ids:
-            item_col, btn_col = st.columns([4, 1])
-            with item_col:
-                # 세션에서 값을 직접 가져와서 할당
-                current_val = st.session_state.items.get(item_id, 0)
-                st.session_state.items[item_id] = st.number_input(
-                    f"아이템 가격 (만 단위)", 
-                    value=current_val, 
-                    key=f"input_{item_id}"
-                )
-            with btn_col:
-                st.write(" ")
-                st.write(" ")
-                if st.button("🗑️", key=f"del_{item_id}"):
-                    remove_item(item_id)
-                    st.rerun()
+    # [에러 방지] 리스트를 직접 순회하며 값 업데이트
+    new_prices = []
+    for i, price in enumerate(st.session_state.price_list):
+        item_col, btn_col = st.columns([4, 1])
+        with item_col:
+            # key 이름을 데이터 변수명과 다르게 설정하여 충돌 방지
+            p = st.number_input(f"아이템 {i+1} 가격 (만 단위)", 
+                                value=int(price), 
+                                key=f"widget_price_{i}")
+            new_prices.append(p)
+        with btn_col:
+            st.write(" ")
+            st.write(" ")
+            if st.button("🗑️", key=f"widget_del_{i}"):
+                remove_item(i)
+    
+    # 입력된 값들을 세션에 다시 저장
+    st.session_state.price_list = new_prices
     
     st.button("➕ 아이템 추가", on_click=add_item, use_container_width=True)
 
-# --- 계산 로직 (에러 방지용 가드 포함) ---
-if 'items' in st.session_state and st.session_state.items:
-    total_sales = sum(st.session_state.items.values()) * 10000
-    pure_profit = total_sales * 0.78
-    listing_price = (pure_profit / (k - 0.12)) - a
-    real_share = listing_price * 0.88
-else:
-    total_sales = pure_profit = listing_price = real_share = 0
+# --- 계산 로직 ---
+total_sales = sum(st.session_state.price_list) * 10000
+pure_profit = total_sales * 0.78
+listing_price = (pure_profit / (k - 0.12)) - a
+real_share = listing_price * 0.88
 
 # --- 결과 화면 ---
 with col_right:
@@ -107,7 +98,7 @@ with col_right:
         <p><b>💰 판매자 순수 정산금:</b> {int(pure_profit):,}원</p>
         <hr>
         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-            <span>나머지 팀원 {k-1}명 총 이체액</span>
+            <span style="color:#AAA;">팀원 {k-1}명 총 이체액</span>
             <span>{max(0, int(listing_price * (k-1))):,}원</span>
         </div>
         <div style="display:flex; justify-content:space-between;">
