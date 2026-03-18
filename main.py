@@ -177,3 +177,48 @@ with col_right:
     
     # st.text_area를 활용한 간편 복사 UI
     st.code(copy_text, language=None)
+
+
+    # --- 1. 보스 데이터 정의 (예시 데이터) ---
+boss_data = [
+    {"no": 1, "name": "분노한 메노티오스", "time": "12:00 / 18:00"},
+    {"no": 2, "name": "타락한 대정령", "time": "13:30 / 19:30"},
+    {"no": 3, "name": "검은 심장 카스파", "time": "15:00 / 21:00"},
+    {"no": 4, "name": "폭주한 아누바이트", "time": "16:30 / 22:30"},
+]
+
+# --- 2. 사이드바 스타일 및 내용 ---
+with st.sidebar:
+    st.markdown("### 🕒 필드 보스 타임라인")
+    st.markdown("---")
+    
+    # CSS로 사이드바 내부 카드 스타일링
+    st.markdown("""
+        <style>
+        [data-testid="stSidebar"] {
+            background-color: #161a21 !important;
+            min-width: 300px;
+        }
+        .boss-card {
+            background-color: #262626;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #FFB800;
+            margin-bottom: 10px;
+        }
+        .boss-name { color: #fafafa; font-weight: bold; font-size: 15px; }
+        .boss-time { color: #FFB800; font-size: 13px; margin-top: 4px; }
+        .boss-no { color: #888; font-size: 11px; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    for boss in boss_data:
+        st.markdown(f"""
+            <div class="boss-card">
+                <div class="boss-no">NO. {boss['no']:02d}</div>
+                <div class="boss-name">{boss['name']}</div>
+                <div class="boss-time">⏳ {boss['time']}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.info("💡 젠 시간 5분 전 알람 설정을 권장합니다.")
