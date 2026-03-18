@@ -134,21 +134,21 @@ with col_left:
     display_num = 1
     for i in item_indices:
         if f'ni_{i}' not in st.session_state: continue
-        with st.container():
-            # st.markdown('<div class="item-card-marker">', unsafe_allow_html=True)
-            r1_c1, r1_c2, r1_c3 = st.columns([1, 7.5, 1.5], gap="small")
-            with r1_c1: st.markdown(f'<div class="item-badge">{display_num}</div>', unsafe_allow_html=True)
-            with r1_c2: st.text_input("보스명", key=f"ni_{i}")
-            with r1_c3:
-                if st.button("✕", key=f"del_{i}"):
-                    del st.session_state[f'ni_{i}']; del st.session_state[f'pi_{i}']
-                    st.rerun()
-            r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
-            with r2_c1: st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
-            with r2_c2: st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
-            with r2_c3: st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
-            display_num += 1
-            # st.markdown('</div>', unsafe_allow_html=True)
+        # with st.container():
+        st.markdown('<div class="item-card-marker">', unsafe_allow_html=True)
+        r1_c1, r1_c2, r1_c3 = st.columns([1, 7.5, 1.5], gap="small")
+        with r1_c1: st.markdown(f'<div class="item-badge">{display_num}</div>', unsafe_allow_html=True)
+        with r1_c2: st.text_input("보스명", key=f"ni_{i}")
+        with r1_c3:
+            if st.button("✕", key=f"del_{i}"):
+                del st.session_state[f'ni_{i}']; del st.session_state[f'pi_{i}']
+                st.rerun()
+        r2_c1, r2_c2, r2_c3 = st.columns([1.8, 7.2, 1])
+        with r2_c1: st.markdown('<div class="label-box">판매가</div>', unsafe_allow_html=True)
+        with r2_c2: st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
+        with r2_c3: st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
+        display_num += 1
+        st.markdown('</div>', unsafe_allow_html=True)
     st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
 
 # --- 7. 계산 로직 및 결과 ---
