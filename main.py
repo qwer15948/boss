@@ -178,9 +178,7 @@ with col_right:
     # st.text_area를 활용한 간편 복사 UI
     st.code(copy_text, language=None)
 
-
 # --- 1. 파티별 이동 순서 데이터 ---
-# 유저님이 주신 순서 그대로 리스트화했습니다.
 party_routes = {
     1: ["가르투아", "카샤파", "타르탄", "바르시엔", "악시오스", "노블루드", "비슈베다"],
     2: ["구루타", "쉬라크", "카샤파", "타르탄", "카루카", "악시오스", "노블루드", "비슈베다"],
@@ -188,8 +186,7 @@ party_routes = {
     4: ["쉬라크", "카샤파", "타르탄", "카루카", "악시오스", "노블루드", "비슈베다"]
 }
 
-# 보스별 주기(배경색 결정용)
-# 주시는 정보에 따라 4h, 6h, 12h를 임의 할당했습니다. 필요시 수정하세요!
+# 보스별 주기 (배경색 및 등급 결정)
 boss_info = {
     "가르투아": "4h", "구루타": "4h", "쉬라크": "4h", 
     "카샤파": "6h", "타르탄": "6h", "바르시엔": "4h", "카루카": "4h",
@@ -197,61 +194,79 @@ boss_info = {
 }
 
 # --- 2. 스타일 설정 ---
-st.set_page_config(layout="wide", page_title="필드 보스 작전판")
+st.set_page_config(layout="wide", page_title="AION2 보스 작전판")
 st.markdown("""
     <style>
+    /* 전체 배경 및 헤더 */
+    .main { background-color: #0E1117; }
     .party-header {
-        text-align: center; padding: 12px;
+        text-align: center; padding: 15px;
         background-color: #1E1E1E; border-radius: 10px;
         border-bottom: 4px solid #FFB800; margin-bottom: 20px;
-        font-weight: bold; font-size: 18px; color: #EEE;
+        font-weight: bold; font-size: 20px; color: #FFF;
     }
-    .boss-card {
-        padding: 15px; border-radius: 12px; margin-bottom: 15px;
-        border: 1px solid transparent; position: relative;
-    }
-    /* 주기별 색상 */
-    .cycle-4h { background-color: #262626; border-left: 5px solid #888; }
-    .cycle-6h { background-color: #1A2635; border-left: 5px solid #00A3FF; }
-    .cycle-12h { background-color: #332B12; border-left: 5px solid #FFB800; border: 1px solid #FFB80044; }
     
-    .order-badge {
-        position: absolute; top: 10px; right: 15px;
-        background: rgba(255,255,255,0.1); padding: 2px 8px;
-        border-radius: 20px; font-size: 12px; color: #AAA;
+    /* 익스펜더 커스텀 스타일 */
+    .stExpander {
+        border-radius: 12px !important;
+        margin-bottom: 10px !important;
+        border: none !important;
     }
-    .boss-name { font-size: 17px; font-weight: bold; color: #FFF; margin-top: 5px; }
-    .coop-tag { font-size: 11px; color: #999; margin-top: 8px; display: block; }
+    
+    /* 주기별 카드 색상 정의 */
+    div[data-testid="stExpander"]:has(.cycle-4h) { background-color: #262626 !important; border-left: 5px solid #888 !important; }
+    div[data-testid="stExpander"]:has(.cycle-6h) { background-color: #1A2635 !important; border-left: 5px solid #00A3FF !important; }
+    div[data-testid="stExpander"]:has(.cycle-12h) { background-color: #332B12 !important; border-left: 5px solid #FFB800 !important; }
+
+    .boss-title { font-size: 16px; font-weight: bold; color: white; }
+    .detail-text { font-size: 13px; color: #BBB; line-height: 1.6; }
+    .highlight-gold { color: #FFB800; font-weight: bold; }
+    
+    /* 하단 범례 스타일 */
+    .legend-box {
+        padding: 20px; background-color: #1E1E1E; border-radius: 10px;
+        margin-top: 50px; border: 1px solid #333; text-align: center;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("⚔️ 파티별 보스 토벌 시퀀스")
-st.caption("각 파티는 위에서 아래 순서대로 이동합니다. (12시간 통합 젠 기준)")
+st.title("🛡️ 파티별 보스 토벌 로드맵")
+st.caption("각 보스 카드를 클릭하면 상세 협동 파티와 순서를 확인할 수 있습니다.")
 
-# --- 3. 레이아웃 렌더링 ---
+# --- 3. 메인 레이아웃 (4컬럼) ---
 cols = st.columns(4)
-party_names = ["1파티", "2파티", "3파티", "4파티"]
+party_names = ["1파티 (Main)", "2파티 (Sub)", "3파티 (Support)", "4파티 (Strike)"]
 
 for i in range(4):
     p_num = i + 1
     with cols[i]:
         st.markdown(f'<div class="party-header">{party_names[i]}</div>', unsafe_allow_html=True)
         
-        # 해당 파티의 경로를 순서대로 출력
         for idx, name in enumerate(party_routes[p_num]):
             cycle = boss_info.get(name, "4h")
             
-            # 다른 파티도 이 보스를 잡는지 확인 (협동 체크)
+            # 협동 파티 계산
             coop_parties = [str(p) for p, route in party_routes.items() if name in route and p != p_num]
-            coop_text = f"🤝 {', '.join(coop_parties)}파티 합류" if coop_parties else "👤 단독 처리"
+            coop_text = f"🤝 {', '.join(coop_parties)}파티와 공동 공략" if coop_parties else "👤 단독 처리 보스"
             
-            st.markdown(f"""
-                <div class="boss-card cycle-{cycle}">
-                    <div class="order-badge">{idx + 1}번째</div>
-                    <div class="boss-name">{name}</div>
-                    <span class="coop-tag">{coop_text}</span>
-                </div>
-            """, unsafe_allow_html=True)
+            # 익스펜더(서랍) 생성
+            # label에 HTML을 직접 넣을 수 없으므로, 내부 컨텐츠에 클래스를 부여하여 스타일링
+            with st.expander(f"**{idx+1}. {name}**"):
+                st.markdown(f"""
+                    <div class="cycle-{cycle}">
+                        <div class="detail-text">
+                            • <b>진행 순서:</b> {idx+1}번째 목적지<br>
+                            • <b>보스 등급:</b> {cycle} 주기<br>
+                            • <b>협동 정보:</b> <span class="highlight-gold">{coop_text}</span>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
 
-st.sidebar.markdown("### 💡 범례")
-st.sidebar.info("🔘 회색: 4시간 주기\n\n🔵 파랑: 6시간 주기\n\n🟡 황금: 12시간 주기")
+# --- 4. 하단 범례 섹션 ---
+st.markdown("""
+    <div class="legend-box">
+        <span style="color:#888; margin-right:20px;">● 회색: 4시간 주기</span>
+        <span style="color:#00A3FF; margin-right:20px;">● 파랑: 6시간 주기</span>
+        <span style="color:#FFB800;">● 황금: 12시간 주기 (최우선)</span>
+    </div>
+""", unsafe_allow_html=True)
