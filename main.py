@@ -128,7 +128,7 @@ def add_item():
 st.title("🎲 아이온2 필보 정산기")
 st.caption("거래소 수수료 20% | 등록 수수료 2% | 개인 판매 수수료 10%")
 
-col_left, col_right = st.columns([1.1, 0.9], gap="large")
+col_left, col_right = st.columns([1, 1], gap="large")
 
 with col_left:
     in_c1, in_c2 = st.columns(2)
