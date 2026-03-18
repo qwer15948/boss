@@ -11,11 +11,11 @@ if 'item_count' not in st.session_state:
     st.session_state['pi_0'] = '7,500,000'
 
 boss_db = {
-    "가르투아": {"no": 10, "cycle": "4h"}, "구루타": {"no": 11, "cycle": "4h"},
-    "쉬라크": {"no": 12, "cycle": "4h"}, "카샤파": {"no": 15, "cycle": "6h"},
+    "가르투아": {"no": 10, "cycle": "12h"}, "구루타": {"no": 11, "cycle": "6h"},
+    "쉬라크": {"no": 12, "cycle": "6h"}, "카샤파": {"no": 15, "cycle": "6h"},
     "타르탄": {"no": 18, "cycle": "6h"}, "바르시엔": {"no": 22, "cycle": "4h"},
-    "카루카": {"no": 25, "cycle": "4h"}, "악시오스": {"no": 30, "cycle": "6h"},
-    "노블루드": {"no": 45, "cycle": "12h"}, "비슈베다": {"no": 50, "cycle": "12h"}
+    "카루카": {"no": 25, "cycle": "4h"}, "악시오스": {"no": 30, "cycle": "4h"},
+    "노블루드": {"no": 45, "cycle": "4h"}, "비슈베다": {"no": 50, "cycle": "6h"}
 }
 
 party_routes = {
@@ -30,7 +30,7 @@ st.markdown("""
     <style>
     /* 전체 배경 */
     html, body, [data-testid="stAppViewContainer"] { background-color: #0E1117 !important; color: #fafafa !important; }
-    .block-container { max-width: 950px; padding-top: 2rem; }
+    .block-container { max-width: 1000px; padding-top: 2rem; }
 
     /* [중요] 정산기 카드 레이아웃 복구 */
     [data-testid="stVerticalBlock"] > div:has(div.item-card-marker) {
@@ -120,7 +120,7 @@ def add_item():
 st.title("🎲 아이온2 필보 정산기")
 st.caption("거래소 수수료 20% | 등록 수수료 2% | 개인 판매 수수료 10%")
 
-col_left, col_right = st.columns([1.1, 0.9], gap="large")
+col_left, col_right = st.columns([1.1, 0.9], gap="midium")
 
 with col_left:
     in_c1, in_c2 = st.columns(2)
@@ -135,7 +135,7 @@ with col_left:
     for i in item_indices:
         if f'ni_{i}' not in st.session_state: continue
         with st.container():
-            st.markdown('<div class="item-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="item-card-marker">', unsafe_allow_html=True)
             r1_c1, r1_c2, r1_c3 = st.columns([1, 7.5, 1.5], gap="small")
             with r1_c1: st.markdown(f'<div class="item-badge">{display_num}</div>', unsafe_allow_html=True)
             with r1_c2: st.text_input("보스명", key=f"ni_{i}")
@@ -148,6 +148,7 @@ with col_left:
             with r2_c2: st.text_input("가격", key=f"pi_{i}", on_change=on_price_change, args=(i,))
             with r2_c3: st.markdown('<div class="label-box">원</div>', unsafe_allow_html=True)
             display_num += 1
+            st.markdown('</div>', unsafe_allow_html=True)
     st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
 
 # --- 7. 계산 로직 및 결과 ---
