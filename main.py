@@ -179,46 +179,79 @@ with col_right:
     st.code(copy_text, language=None)
 
 
-    # --- 1. 보스 데이터 ---
-boss_data = [
-    {"no": 54, "name": "바르시엔", "time": "0"},
-    {"no": 57, "name": "카루카", "time": "+ 11초(11초)"},
-    {"no": 44, "name": "악시오스", "time": "+ 56초(45초)"},
-    {"no": 41, "name": "노블루드", "time": "+ 2분 1초(1분 5초)"},
+# --- 1. 파티별 이동 순서 데이터 ---
+# 유저님이 주신 순서 그대로 리스트화했습니다.
+party_routes = {
+    1: ["가르투아", "카샤파", "타르탄", "바르시엔", "악시오스", "노블루드", "비슈베다"],
+    2: ["구루타", "쉬라크", "카샤파", "타르탄", "카루카", "악시오스", "노블루드", "비슈베다"],
+    3: ["가르투아", "카샤파", "타르탄", "카루카", "악시오스", "비슈베다"],
+    4: ["쉬라크", "카샤파", "타르탄", "카루카", "악시오스", "노블루드", "비슈베다"]
+}
 
-]
+# 보스별 주기(배경색 결정용)
+# 주시는 정보에 따라 4h, 6h, 12h를 임의 할당했습니다. 필요시 수정하세요!
+boss_info = {
+    "가르투아": "4h", "구루타": "4h", "쉬라크": "4h", 
+    "카샤파": "6h", "타르탄": "6h", "바르시엔": "4h", "카루카": "4h",
+    "악시오스": "6h", "노블루드": "12h", "비슈베다": "12h"
+}
 
-# --- 2. 사이드바 스타일 및 내용 ---
-with st.sidebar:
-    st.markdown("### 🕒 필드 보스 타임라인")
-    st.markdown("---")
+# --- 2. 스타일 설정 ---
+st.set_page_config(layout="wide", page_title="필드 보스 작전판")
+st.markdown("""
+    <style>
+    .party-header {
+        text-align: center; padding: 12px;
+        background-color: #1E1E1E; border-radius: 10px;
+        border-bottom: 4px solid #FFB800; margin-bottom: 20px;
+        font-weight: bold; font-size: 18px; color: #EEE;
+    }
+    .boss-card {
+        padding: 15px; border-radius: 12px; margin-bottom: 15px;
+        border: 1px solid transparent; position: relative;
+    }
+    /* 주기별 색상 */
+    .cycle-4h { background-color: #262626; border-left: 5px solid #888; }
+    .cycle-6h { background-color: #1A2635; border-left: 5px solid #00A3FF; }
+    .cycle-12h { background-color: #332B12; border-left: 5px solid #FFB800; border: 1px solid #FFB80044; }
     
-    # CSS로 사이드바 내부 카드 스타일링
-    st.markdown("""
-        <style>
-        [data-testid="stSidebar"] {
-            background-color: #161a21 !important;
-            min-width: 300px;
-        }
-        .boss-card {
-            background-color: #262626;
-            padding: 12px;
-            border-radius: 8px;
-            border-left: 4px solid #FFB800;
-            margin-bottom: 10px;
-        }
-        .boss-name { color: #fafafa; font-weight: bold; font-size: 15px; }
-        .boss-time { color: #FFB800; font-size: 13px; margin-top: 4px; }
-        .boss-no { color: #888; font-size: 11px; }
-        </style>
+    .order-badge {
+        position: absolute; top: 10px; right: 15px;
+        background: rgba(255,255,255,0.1); padding: 2px 8px;
+        border-radius: 20px; font-size: 12px; color: #AAA;
+    }
+    .boss-name { font-size: 17px; font-weight: bold; color: #FFF; margin-top: 5px; }
+    .coop-tag { font-size: 11px; color: #999; margin-top: 8px; display: block; }
+    </style>
     """, unsafe_allow_html=True)
 
-    for boss in boss_data:
-        st.markdown(f"""
-            <div class="boss-card">
-                <div class="boss-no">NO. {boss['no']:02d}</div>
-                <div class="boss-name">{boss['name']}</div>
-                <div class="boss-time">⏳ {boss['time']}</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
+st.title("⚔️ 파티별 보스 토벌 시퀀스")
+st.caption("각 파티는 위에서 아래 순서대로 이동합니다. (12시간 통합 젠 기준)")
+
+# --- 3. 레이아웃 렌더링 ---
+cols = st.columns(4)
+party_names = ["1파티", "2파티", "3파티", "4파티"]
+
+for i in range(4):
+    p_num = i + 1
+    with cols[i]:
+        st.markdown(f'<div class="party-header">{party_names[i]}</div>', unsafe_allow_html=True)
+        
+        # 해당 파티의 경로를 순서대로 출력
+        for idx, name in enumerate(party_routes[p_num]):
+            cycle = boss_info.get(name, "4h")
+            
+            # 다른 파티도 이 보스를 잡는지 확인 (협동 체크)
+            coop_parties = [str(p) for p, route in party_routes.items() if name in route and p != p_num]
+            coop_text = f"🤝 {', '.join(coop_parties)}파티 합류" if coop_parties else "👤 단독 처리"
+            
+            st.markdown(f"""
+                <div class="boss-card cycle-{cycle}">
+                    <div class="order-badge">{idx + 1}번째</div>
+                    <div class="boss-name">{name}</div>
+                    <span class="coop-tag">{coop_text}</span>
+                </div>
+            """, unsafe_allow_html=True)
+
+st.sidebar.markdown("### 💡 범례")
+st.sidebar.info("🔘 회색: 4시간 주기\n\n🔵 파랑: 6시간 주기\n\n🟡 황금: 12시간 주기")
