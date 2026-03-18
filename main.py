@@ -11,11 +11,11 @@ if 'item_count' not in st.session_state:
     st.session_state['pi_0'] = '7,500,000'
 
 boss_db = {
-    "가르투아": {"no": 10, "cycle": "12h"}, "구루타": {"no": 11, "cycle": "6h"},
-    "쉬라크": {"no": 12, "cycle": "6h"}, "카샤파": {"no": 15, "cycle": "6h"},
-    "타르탄": {"no": 18, "cycle": "6h"}, "바르시엔": {"no": 22, "cycle": "4h"},
-    "카루카": {"no": 25, "cycle": "4h"}, "악시오스": {"no": 30, "cycle": "4h"},
-    "노블루드": {"no": 45, "cycle": "4h"}, "비슈베다": {"no": 50, "cycle": "6h"}
+    "가르투아": {"no": 15, "cycle": "12h"}, "구루타": {"no": 51, "cycle": "6h"},
+    "쉬라크": {"no": 59, "cycle": "6h"}, "카샤파": {"no": 50, "cycle": "6h"},
+    "타르탄": {"no": 40, "cycle": "6h"}, "바르시엔": {"no": 54, "cycle": "4h"},
+    "카루카": {"no": 57, "cycle": "4h"}, "악시오스": {"no": 44, "cycle": "4h"},
+    "노블루드": {"no": 41, "cycle": "4h"}, "비슈베다": {"no": 57, "cycle": "6h"}
 }
 
 party_routes = {
