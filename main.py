@@ -173,8 +173,8 @@ with col_left:
 
 # --- 7. 계산 및 결과 출력 ---
 total_sales = sum(int(re.sub(r'[^0-9]', '', st.session_state[k])) for k in st.session_state.keys() if k.startswith('pi_') and st.session_state[k])
-pure_profit = total_sales * 0.78 
-listing_price = (pure_profit / (k - 0.12)) - a 
+pure_profit = total_sales * 0.78 - a
+listing_price = (pure_profit / (k - 0.12)) 
 real_share = listing_price * 0.88 
 
 with col_right:
