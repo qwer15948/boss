@@ -35,54 +35,75 @@ if 'ni_0' not in st.session_state:
 # ==========================================
 st.markdown("""
     <style>
-    /* 기본 배경 및 폰트 */
-    html, body, [data-testid="stAppViewContainer"] { background-color: #0E1117 !important; color: #fafafa !important; }
-    
-    /* 메인 컨테이너 반응형 너비 */
-    .block-container { 
-        max-width: 100%; 
-        padding-left: 1rem; 
-        padding-right: 1rem; 
-        padding-top: 2rem; 
+    /* 1. 배경 및 기본 폰트 설정 */
+    html, body, [data-testid="stAppViewContainer"] { 
+        background-color: #0E1117 !important; 
+        color: #fafafa !important; 
     }
 
-    /* 아이템 카드 반응형 스타일 */
+    /* 2. 메인 컨테이너 최대 너비 제한 및 중앙 정렬 */
+    .block-container { 
+        max-width: 1000px !important; /* PC에서 눈에 제일 잘 들어오는 너비 */
+        padding-left: 1.5rem !important; 
+        padding-right: 1.5rem !important; 
+        padding-top: 2rem !important;
+        margin: 0 auto !important; /* 중앙 정렬 */
+    }
+
+    /* 3. 아이템 카드 디자인 */
     [data-testid="stVerticalBlock"] > div:has(div.item-card-marker) {
         background-color: #262626 !important;
-        padding: 15px !important;
+        padding: 20px !important;
         border-radius: 12px !important;
         border: 1px solid #333 !important;
-        margin-bottom: 10px !important;
+        margin-bottom: 15px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
 
-    /* 모바일 환경(768px 이하) 대응 미디어 쿼리 */
+    /* 4. 모바일 환경(768px 이하) 대응 */
     @media (max-width: 768px) {
+        .block-container { 
+            max-width: 100% !important; /* 모바일은 꽉 차게 */
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
         .gold-val, .white-val { font-size: 18px !important; }
         .result-card { padding: 15px !important; }
-        .label-box { font-size: 12px !important; }
-        h1 { font-size: 24px !important; }
+        h1 { font-size: 22px !important; }
     }
 
-    /* 사이드바 메모장 스타일 */
+    /* 사이드바 메모장 디자인 */
     [data-testid="stSidebar"] { background-color: #161a21 !important; }
     .memo-display {
         background-color: #1E1E1E; padding: 15px; border-radius: 8px;
         border: 1px dashed #FFB800; color: #ddd; white-space: pre-wrap;
-        margin-bottom: 20px; font-size: 13px; line-height: 1.5;
+        margin-bottom: 20px; font-size: 13px; line-height: 1.6;
     }
 
-    /* 공통 요소 디자인 */
-    .item-badge { background-color: #FFB800; color: #000; border-radius: 50%; width: 22px; height: 22px; 
-                  display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; margin-top: 10px; }
+    /* 공통 요소 (배지, 입력창 등) */
+    .item-badge { 
+        background-color: #FFB800; color: #000; border-radius: 50%; 
+        width: 22px; height: 22px; display: flex; align-items: center; 
+        justify-content: center; font-weight: bold; font-size: 11px; margin-top: 10px; 
+    }
     div[data-testid="stTextInput"] label { display: none !important; }
-    input { background-color: #1E1E1E !important; border: 1px solid #444 !important; border-radius: 8px !important; color: white !important; }
+    input { 
+        background-color: #1E1E1E !important; border: 1px solid #444 !important; 
+        border-radius: 8px !important; color: white !important; 
+    }
     
-    /* 결과 박스 */
-    .result-card { background-color: #1E1E1E; padding: 20px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 10px; }
-    .gold-val { color: #FFB800; font-weight: bold; font-size: 22px; }
-    .white-val { color: #FFFFFF; font-weight: bold; font-size: 22px; }
-    .summary-box { background-color: #161616; padding: 15px; border-radius: 10px; border-left: 4px solid #FFB800; margin: 15px 0px; font-size: 14px;}
-    </style>
+    /* 결과 박스 디자인 */
+    .result-card { 
+        background-color: #1E1E1E; padding: 25px; border-radius: 12px; 
+        border: 1px solid #333; text-align: center; margin-bottom: 12px; 
+    }
+    .gold-val { color: #FFB800; font-weight: bold; font-size: 24px; }
+    .white-val { color: #FFFFFF; font-weight: bold; font-size: 24px; }
+    .summary-box { 
+        background-color: #161616; padding: 20px; border-radius: 10px; 
+        border-left: 4px solid #FFB800; margin: 20px 0px; font-size: 14px;
+    }
+</style>
     """, unsafe_allow_html=True)
 
 # 4. 사이드바 (메모장)
