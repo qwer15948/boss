@@ -91,8 +91,8 @@ st.markdown("""
 # 4. 사이드바 (실시간 공유 메모장)
 # ==========================================
 with st.sidebar:
-    st.title("📝 팀 공용 메모장")
-    st.caption("모든 접속자가 실시간으로 공유하는 메모입니다.")
+    st.title("📝 이번 주 보스 순서")
+    st.caption("메모 변경은 문의")
     
     # DB에서 최신 메모 읽기
     current_memo = get_db_memo()
@@ -100,11 +100,11 @@ with st.sidebar:
     
     st.write("---")
     # 관리자 암호 확인
-    pwd = st.text_input("🔑 관리자 암호", type="password", placeholder="수정하려면 0101 입력")
+    pwd = st.text_input("🔑 관리자 암호", type="password", placeholder="수정 시 비밀번호 필요")
     
     if pwd == "0101":
         new_content = st.text_area("내용 수정하기", value=current_memo, height=300)
-        if st.button("💾 모든 팀원에게 실시간 반영", use_container_width=True):
+        if st.button("💾 실시간 반영", use_container_width=True):
             if update_db_memo(new_content):
                 st.success("DB 저장 완료!")
                 st.rerun()
@@ -133,7 +133,6 @@ def add_item():
 # 6. 메인 화면 (정산기 본체)
 # ==========================================
 st.title("🎲 아이온2 필보 정산기")
-st.info("💡 오른쪽 메모장은 비밀번호(0101)를 아는 사람만 수정할 수 있습니다.")
 
 col_left, col_right = st.columns([1, 1], gap="large")
 
