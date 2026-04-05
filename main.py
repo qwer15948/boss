@@ -108,7 +108,7 @@ st.markdown("""
 
 # 4. 사이드바 (메모장)
 with st.sidebar:
-    st.title("📝 팀 공용 메모장")
+    st.title("📝 보스 순서 메모장")
     current_memo = get_db_memo()
     st.markdown(f'<div class="memo-display">{current_memo}</div>', unsafe_allow_html=True)
     pwd = st.text_input("🔑 암호", type="password", placeholder="비번 입력")
