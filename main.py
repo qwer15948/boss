@@ -1,114 +1,119 @@
 import streamlit as st
 import re
+from supabase import create_client, Client
 
-# 1. 페이지 설정 (최상단 고정)
+# ==========================================
+# 1. 페이지 설정 및 DB 연결
+# ==========================================
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
 
-# 2. 데이터 및 세션 초기화
-if 'item_count' not in st.session_state:
-    st.session_state.item_count = 1
+# Streamlit Cloud의 Secrets에 저장된 정보를 가져옵니다.
+# 로컬 테스트 시에는 .streamlit/secrets.toml 파일에 작성하세요.
+try:
+    url: str = st.secrets["SUPABASE_URL"]
+    key: str = st.secrets["SUPABASE_KEY"]
+    supabase: Client = create_client(url, key)
+except Exception:
+    st.error("DB 연결 설정(Secrets)이 필요합니다.")
+
+# --- DB 연동 함수 ---
+def get_db_memo():
+    """DB에서 ID 1번 메모를 가져옴"""
+    try:
+        res = supabase.table("memos").select("content").eq("id", 1).execute()
+        return res.data[0]['content'] if res.data else "기록된 메모가 없습니다."
+    except:
+        return "데이터를 불러오는 중 오류가 발생했습니다."
+
+def update_db_memo(new_text):
+    """DB의 ID 1번 메모를 업데이트"""
+    try:
+        supabase.table("memos").update({"content": new_text}).eq("id", 1).execute()
+        return True
+    except:
+        return False
+
+# ==========================================
+# 2. 세션 및 데이터 초기화
+# ==========================================
+if 'init' not in st.session_state:
+    st.session_state.init = True
     st.session_state['ni_0'] = '필보'
     st.session_state['pi_0'] = '7,500,000'
 
-# [업데이트] 보스 데이터베이스
-boss_db = {
-    "가르투아": {"no": 15, "cycle": "12h"},
-    "구루타": {"no": 51, "cycle": "6h"},
-    "쉬라크": {"no": 59, "cycle": "6h"},
-    "카샤파": {"no": 50, "cycle": "6h"},
-    "타르탄": {"no": 40, "cycle": "6h"},
-    "바르시엔": {"no": 54, "cycle": "4h"},
-    "카루카": {"no": 57, "cycle": "4h"},
-    "악시오스": {"no": 44, "cycle": "4h"},
-    "노블루드": {"no": 41, "cycle": "4h"},
-    "비슈베다": {"no": 57, "cycle": "6h"}
-}
-
-# [업데이트] 파티별 상세 루트 (이름, 시간 오프셋)
-party_routes = {
-    1: [("구루타", "+0:00"), ("카샤파", "+1:15"), ("타르탄", "+1:43"), ("바르시엔", "+2:13"), ("악시오스", "+3:09"), ("노블루드", "+4:14")],
-    2: [("가르투아", "+0:04"), ("카샤파", "+1:15"), ("타르탄", "+1:43"), ("카루카", "+2:24"), ("악시오스", "+3:09"), ("비슈베다", "+5:22")],
-    3: [("쉬라크", "+0:23"), ("카샤파", "+1:15"), ("타르탄", "+1:43"), ("카루카", "+2:24"), ("악시오스", "+3:09"), ("비슈베다", "+5:22")],
-    4: [("가르투아", "+0:04"), ("카샤파", "+1:15"), ("타르탄", "+1:43"), ("카루카", "+2:24"), ("악시오스", "+3:09"), ("노블루드", "+4:14")]
-}
-
-# --- 3. 커스텀 CSS (정산기 레이아웃 유지 + 보스 카드 스타일) ---
+# ==========================================
+# 3. 커스텀 CSS (디자인)
+# ==========================================
 st.markdown("""
     <style>
     html, body, [data-testid="stAppViewContainer"] { background-color: #0E1117 !important; color: #fafafa !important; }
-    .block-container { max-width: 950px; padding-top: 2rem; }
+    .block-container { max-width: 1000px; padding-top: 2rem; }
 
-    /* 정산기 아이템 카드 스타일 (원본 레이아웃 복구) */
+    /* 정산기 아이템 카드 */
     [data-testid="stVerticalBlock"] > div:has(div.item-card-marker) {
         background-color: #262626 !important;
         padding: 20px !important;
         border-radius: 12px !important;
         border: 1px solid #333 !important;
         margin-bottom: 15px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
-    /* 사이드바 보스 카드 스타일 */
-    [data-testid="stSidebar"] { background-color: #161a21 !important; min-width: 320px !important; }
-    .boss-card-unit {
-        background-color: #262626;
-        padding: 12px 15px;
-        border-radius: 10px;
-        margin-bottom: 10px;
-        border: 1px solid #333;
+    /* 사이드바 및 메모장 */
+    [data-testid="stSidebar"] { background-color: #161a21 !important; min-width: 350px !important; }
+    .memo-display {
+        background-color: #1E1E1E; padding: 18px; border-radius: 8px;
+        border: 1px dashed #FFB800; color: #ddd; white-space: pre-wrap;
+        margin-bottom: 20px; min-height: 150px; font-size: 14px; line-height: 1.6;
     }
-    /* 등급별 왼쪽 테두리 색상 */
-    .line-4h { border-left: 5px solid #888; }
-    .line-6h { border-left: 5px solid #00A3FF; }
-    .line-12h { border-left: 5px solid #FFB800; }
 
-    .boss-no { font-size: 11px; color: #888; font-weight: bold; }
-    .boss-name { font-size: 17px; font-weight: bold; color: #FFF; margin-top: 2px; }
-    .boss-time { font-size: 13px; color: #FFB800; font-weight: bold; float: right; }
-
-    /* 정산기 내부 요소 스타일 */
     .label-box { color: #AAA; font-size: 14px; font-weight: bold; display: flex; align-items: center; height: 42px; }
-    .item-badge { background-color: #FFB800; color: #000; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; margin-top: 10px; }
+    .item-badge { background-color: #FFB800; color: #000; border-radius: 50%; width: 22px; height: 22px; 
+                  display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; margin-top: 10px; }
+    
     div[data-testid="stTextInput"] label { display: none !important; }
     input { background-color: #1E1E1E !important; border: 1px solid #444 !important; border-radius: 8px !important; color: white !important; }
 
-    /* 삭제 버튼(X) 정렬 고정 */
+    /* 삭제 버튼(X) */
     div.stButton > button[key^="del_"] {
         height: 42px !important; width: 42px !important; min-width: 42px !important;
-        display: flex !important; align-items: center !important; justify-content: center !important;
-        padding: 0 !important; background-color: #333 !important; border: 1px solid #444 !important;
-        color: #888 !important; font-size: 20px !important; border-radius: 8px !important;
+        background-color: #333 !important; color: #888 !important; border-radius: 8px !important;
     }
     
-    /* 결과 박스 디자인 */
+    /* 결과 카드 */
     .result-card { background-color: #1E1E1E; padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; margin-bottom: 15px; }
-    .gold-val { color: #FFB800; font-weight: bold; font-size: 20px !important; }
-    .white-val { color: #FFFFFF; font-weight: bold; font-size: 20px !important; }
+    .gold-val { color: #FFB800; font-weight: bold; font-size: 22px !important; }
+    .white-val { color: #FFFFFF; font-weight: bold; font-size: 22px !important; }
     .summary-box { background-color: #161616; padding: 20px; border-radius: 10px; border-left: 4px solid #FFB800; margin: 20px 0px;}
-    hr { border: 0.1px solid #333; margin: 20px 0; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. 사이드바 (파티별 보스 타임라인) ---
+# ==========================================
+# 4. 사이드바 (실시간 공유 메모장)
+# ==========================================
 with st.sidebar:
-    st.title("⚔️ 보스 타임라인")
-    p_tabs = st.tabs(["1파티", "2파티", "3파티", "4파티"])
-    for i, tab in enumerate(p_tabs):
-        p_num = i + 1
-        with tab:
-            st.write("")
-            for idx, (name, time_val) in enumerate(party_routes[p_num]):
-                info = boss_db.get(name, {"no": 0, "cycle": "4h"})
-                st.markdown(f"""
-                    <div class="boss-card-unit line-{info['cycle']}">
-                        <div class="boss-no">NO. {info['no']:02d} | {idx+1}번째 <span class="boss-time">{time_val}</span></div>
-                        <div class="boss-name">{name}</div>
-                    </div>
-                """, unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("""<div style="font-size:11px; color:#666; text-align:center;">🔘 4h | 🔵 6h | 🟡 12h</div>""", unsafe_allow_html=True)
+    st.title("📝 팀 공용 메모장")
+    st.caption("모든 접속자가 실시간으로 공유하는 메모입니다.")
+    
+    # DB에서 최신 메모 읽기
+    current_memo = get_db_memo()
+    st.markdown(f'<div class="memo-display">{current_memo}</div>', unsafe_allow_html=True)
+    
+    st.write("---")
+    # 관리자 암호 확인
+    pwd = st.text_input("🔑 관리자 암호", type="password", placeholder="수정하려면 0101 입력")
+    
+    if pwd == "0101":
+        new_content = st.text_area("내용 수정하기", value=current_memo, height=300)
+        if st.button("💾 모든 팀원에게 실시간 반영", use_container_width=True):
+            if update_db_memo(new_content):
+                st.success("DB 저장 완료!")
+                st.rerun()
+            else:
+                st.error("저장 실패. DB 설정을 확인하세요.")
 
-# --- 5. 기능 함수 ---
+# ==========================================
+# 5. 정산기 기능 함수
+# ==========================================
 def format_comma(val):
     num = re.sub(r'[^0-9]', '', str(val))
     return f"{int(num):,}" if num else "0"
@@ -124,9 +129,11 @@ def add_item():
     st.session_state[f'ni_{next_idx}'] = '필보'
     st.session_state[f'pi_{next_idx}'] = '0'
 
-# --- 6. 메인 화면 (정산기) ---
+# ==========================================
+# 6. 메인 화면 (정산기 본체)
+# ==========================================
 st.title("🎲 아이온2 필보 정산기")
-st.caption("거래소 수수료 20% | 등록 수수료 2% | 개인 판매 수수료 10%")
+st.info("💡 오른쪽 메모장은 비밀번호(0101)를 아는 사람만 수정할 수 있습니다.")
 
 col_left, col_right = st.columns([1, 1], gap="large")
 
@@ -140,7 +147,6 @@ with col_left:
     st.write("---")
     st.write("#### 📦 판매 아이템 리스트")
     
-    # 세션 상태에서 아이템 인덱스 추출 및 정렬
     item_indices = sorted([int(k.split('_')[1]) for k in st.session_state.keys() if k.startswith('ni_')])
     
     display_num = 1
@@ -171,8 +177,13 @@ with col_left:
 
     st.button("＋ 아이템 추가", key="add_btn", on_click=add_item, use_container_width=True)
 
-# --- 7. 계산 및 결과 출력 ---
-total_sales = sum(int(re.sub(r'[^0-9]', '', st.session_state[k])) for k in st.session_state.keys() if k.startswith('pi_') and st.session_state[k])
+# --- 계산 로직 ---
+total_sales = 0
+for key in st.session_state.keys():
+    if key.startswith('pi_'):
+        val = re.sub(r'[^0-9]', '', st.session_state[key])
+        total_sales += int(val) if val else 0
+
 pure_profit = total_sales * 0.78 - a
 listing_price = (pure_profit / (k - 0.12)) 
 real_share = listing_price * 0.88 
@@ -195,4 +206,5 @@ with col_right:
     </div>
     """, unsafe_allow_html=True)
     
-    st.code(f"💎 아이온2 필보 정산 결과\n- 등록가: {max(0, int(listing_price)):,} 키나\n- 실수령: {max(0, int(real_share)):,} 키나", language=None)
+    copy_text = f"💎 아이온2 필보 정산 결과\n- 거래소 등록가: {max(0, int(listing_price)):,} 키나\n- 인당 실수령액: {max(0, int(real_share)):,} 키나"
+    st.code(copy_text, language=None)
