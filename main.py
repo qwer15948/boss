@@ -111,7 +111,7 @@ with st.sidebar:
     st.title("📝 팀 공용 메모장")
     current_memo = get_db_memo()
     st.markdown(f'<div class="memo-display">{current_memo}</div>', unsafe_allow_html=True)
-    pwd = st.text_input("🔑 암호", type="password", placeholder="0101 입력 시 수정")
+    pwd = st.text_input("🔑 암호", type="password", placeholder="비번 입력")
     if pwd == "0101":
         new_content = st.text_area("내용 수정", value=current_memo, height=250)
         if st.button("💾 저장하기", use_container_width=True):
