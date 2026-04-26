@@ -1,7 +1,7 @@
 import streamlit as st
 import re
 from supabase import create_client, Client
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from streamlit_autorefresh import st_autorefresh
 # ==========================================
 # 1. 페이지 설정 및 자동 새로고침
@@ -156,7 +156,7 @@ if boss_data:
         with t_cols[idx]:
             last_kill = datetime.fromisoformat(boss['last_killed_at'])
             next_spawn = last_kill + timedelta(hours=boss['respawn_hours'])
-            remaining = next_spawn - datetime.now()
+            remaining = next_spawn - datetime.now(timezone.utc)
             
             if remaining.total_seconds() <= 0:
                 status_color = "#FF4B4B"; display_text = "지금 등장!!"
