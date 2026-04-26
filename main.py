@@ -1,12 +1,15 @@
 import streamlit as st
 import re
 from supabase import create_client, Client
-from datetime import datetime
-
+from datetime import datetime, timedelta
+from streamlit_autorefresh import st_autorefresh
 # ==========================================
-# 1. 페이지 설정 및 DB 연결
+# 1. 페이지 설정 및 자동 새로고침
 # ==========================================
 st.set_page_config(page_title="아이온2 정산기", page_icon="🎲", layout="wide")
+
+# 1분(60,000ms)마다 자동으로 앱을 갱신해서 보스 시간을 체크합니다.
+st_autorefresh(interval=60000, key="boss_refresh")
 
 try:
     url: str = st.secrets["SUPABASE_URL"]
@@ -15,7 +18,9 @@ try:
 except:
     st.error("DB 연결 설정(Secrets)이 필요합니다.")
 
-# --- DB 연동 함수 ---
+# ==========================================
+# 2. DB 및 알림 함수
+# ==========================================
 def get_db_memo():
     res = supabase.table("memos").select("content").eq("id", 1).execute()
     return res.data[0]['content'] if res.data else ""
@@ -35,14 +40,36 @@ def get_total_profit():
 def get_history_list():
     """최근 내역 10개"""
     res = supabase.table("history").select("*").order("created_at", desc=True).limit(10).execute()
+
+
+# 보스 관련 함수
+def get_boss_timers():
+    res = supabase.table("boss_db").select("*").order("respawn_hours", desc=True).execute()
     return res.data
 
-# ==========================================
-# 2. 커스텀 CSS (완전한 반응형 + 최대 너비 제한)
-# ==========================================
+def reset_all_boss_timers():
+    now = datetime.now().isoformat()
+    supabase.table("boss_db").update({"last_killed_at": now}).in_("id", [1, 2, 3]).execute()
+
+# 데스크톱 알림 발송 함수
+def trigger_notification(boss_name):
+    js = f"""
+        <script>
+        if (Notification.permission !== 'granted') {{
+            Notification.requestPermission();
+        }} else {{
+            new Notification('🚨 아이온2 보스 등장!', {{
+                body: '{boss_name} 시간이 되었습니다!',
+                icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827347.png'
+            }});
+        }}
+        </script>
+    """
+    st.components.v1.html(js, height=0)
+
+# (기존 CSS 설정 부분은 이전과 동일하므로 생략하거나 기존 것 사용 가능)
 st.markdown("""
     <style>
-    /* 배경 및 기본 폰트 */
     html, body, [data-testid="stAppViewContainer"] { background-color: #0E1117 !important; color: #fafafa !important; }
     
     /* [핵심] PC에서 1000px 중앙 정렬, 모바일에서 가변 */
@@ -86,11 +113,14 @@ st.markdown("""
     div[data-testid="stTextInput"] label { display: none !important; }
     input { background-color: #1E1E1E !important; border: 1px solid #444 !important; border-radius: 8px !important; color: white !important; }
     .history-item { font-size: 12px; color: #aaa; border-bottom: 1px solid #333; padding: 10px 0; line-height: 1.4; }
+    .block-container { max-width: 1000px !important; padding-top: 2rem !important; margin: 0 auto !important; }
+    .total-banner { background: linear-gradient(90deg, #FFB800, #FF8A00); color: black; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; font-weight: bold; }
+    @media (max-width: 768px) { .block-container { max-width: 100% !important; } }
     </style>
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. 사이드바 (메모장 & 히스토리 리스트)
+# 3. 사이드바 및 보스 알림 섹션
 # ==========================================
 with st.sidebar:
     st.title("📝 팀 공용 메모장")
@@ -113,6 +143,38 @@ with st.sidebar:
             st.markdown(f'<div class="history-item"><b>{date_str}</b><br>{h["boss_names"]}<br><span style="color:#FFB800;">인당 {h["profit"]:,}원</span></div>', unsafe_allow_html=True)
     except:
         st.info("히스토리 테이블을 확인해주세요.")
+
+st.markdown("### ⏰ 보스 젠 현황판")
+if st.button("🔥 모든 보스 타이머 현재 시간으로 초기화", use_container_width=True, type="primary"):
+    reset_all_boss_timers()
+    st.rerun()
+
+boss_data = get_boss_timers()
+if boss_data:
+    t_cols = st.columns(3)
+    for idx, boss in enumerate(boss_data):
+        with t_cols[idx]:
+            last_kill = datetime.fromisoformat(boss['last_killed_at'])
+            next_spawn = last_kill + timedelta(hours=boss['respawn_hours'])
+            remaining = next_spawn - datetime.now()
+            
+            if remaining.total_seconds() <= 0:
+                status_color = "#FF4B4B"; display_text = "지금 등장!!"
+                # 알림 발송 로직
+                notif_key = f"sent_{boss['id']}_{boss['last_killed_at']}"
+                if notif_key not in st.session_state:
+                    trigger_notification(boss['boss_name'])
+                    st.session_state[notif_key] = True
+            else:
+                h, r = divmod(int(remaining.total_seconds()), 3600)
+                m, _ = divmod(r, 60)
+                status_color = "#FFB800"; display_text = f"{h}시간 {m}분 남음"
+
+            st.markdown(f'<div style="background:#1E1E1E; padding:15px; border-radius:10px; border-top:5px solid {status_color}; text-align:center;">'
+                        f'<p style="color:#888; font-size:12px;">{boss['boss_name']}</p>'
+                        f'<p style="font-size:20px; font-weight:bold;">{display_text}</p></div>', unsafe_allow_html=True)
+
+st.write("---")
 
 # ==========================================
 # 4. 메인 화면 (정산기 본체)
